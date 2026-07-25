@@ -3,6 +3,7 @@ import { Skeleton } from "@/core/Skeleton.js";
 import { Animation } from "@/core/Animation.js";
 import { Bone } from "@/core/Bone.js";
 import JSZip from "jszip";
+import { AppStorage } from "@/core/Storage";
 
 interface EditorContextType {
   skeleton: Skeleton | null;
@@ -71,22 +72,23 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     if (!skeleton) {
-      const defaultSkel = new Skeleton();
-      defaultSkel.root.localTransform.x = 0;
-      defaultSkel.root.localTransform.y = 0;
-      
-      let finalSkel = defaultSkel;
-      let finalAnim: any = null;
-      try {
-        const savedRig = localStorage.getItem("rig_workspace");
-        let parsed = null;
-        if (savedRig) parsed = Skeleton.fromJSON(savedRig);
+      const loadWorkspace = async () => {
+        const defaultSkel = new Skeleton();
+        defaultSkel.root.localTransform.x = 0;
+        defaultSkel.root.localTransform.y = 0;
         
-        if (parsed && parsed.root.children.length > 0) {
-          finalSkel = parsed;
-          const savedAnim = localStorage.getItem("anim_workspace");
-          if (savedAnim) finalAnim = Animation.fromJSON(savedAnim);
-        } else {
+        let finalSkel = defaultSkel;
+        let finalAnim: any = null;
+        try {
+          const savedRig = await AppStorage.getItem("rig_workspace");
+          let parsed = null;
+          if (savedRig) parsed = Skeleton.fromJSON(savedRig);
+          
+          if (parsed && parsed.root.children.length > 0) {
+            finalSkel = parsed;
+            const savedAnim = await AppStorage.getItem("anim_workspace");
+            if (savedAnim) finalAnim = Animation.fromJSON(savedAnim);
+          } else {
           // BUILD DEFAULT STICKMAN
           finalSkel.name = "Stickman";
           const hips = new Bone("Hips"); hips.assetType = "shape"; hips.shapeType = "circle"; hips.assetWidth = 30; hips.assetHeight = 30; hips.localTransform.y = -50;
@@ -117,18 +119,23 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
           kf(0.5, "Thigh_L", -30); kf(0.5, "Calf_L", -10); kf(0.5, "Thigh_R", 30); kf(0.5, "Calf_R", -20); kf(0.5, "UpperArm_L", 30); kf(0.5, "UpperArm_R", -30);
           kf(1.0, "Thigh_L", 30); kf(1.0, "Calf_L", -20); kf(1.0, "Thigh_R", -30); kf(1.0, "Calf_R", -10); kf(1.0, "UpperArm_L", -30); kf(1.0, "UpperArm_R", 30);
         }
-      } catch (e) {
-        console.error("Failed to load rig_workspace:", e);
-      }
+        } catch (e) {
+          console.error("Failed to load rig_workspace:", e);
+        }
 
-      setSkeleton(finalSkel);
-      if (finalAnim) setCurrentAnimation(finalAnim);
+        setSkeleton(finalSkel);
+        if (finalAnim) setCurrentAnimation(finalAnim);
+      };
+      loadWorkspace();
     }
   }, [skeleton, canvasWidth, canvasHeight]);
 
   React.useEffect(() => {
-    if (skeleton) localStorage.setItem("rig_workspace", skeleton.exportToJSON());
-    if (currentAnimation) localStorage.setItem("anim_workspace", currentAnimation.exportToJSON());
+    const saveWorkspace = async () => {
+      if (skeleton) await AppStorage.setItem("rig_workspace", skeleton.exportToJSON());
+      if (currentAnimation) await AppStorage.setItem("anim_workspace", currentAnimation.exportToJSON());
+    };
+    saveWorkspace();
   }, [revision, skeleton, currentAnimation]);
 
   const forceUpdate = () => setRevision(r => r + 1);

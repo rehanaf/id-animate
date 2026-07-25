@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Settings, Plus, Video, Bone, FolderPlus, Folder, FolderOpen, ArrowLeft, MoreVertical, Copy, Pencil, Trash2, Upload } from "lucide-react"
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from "@/components/ui/drawer"
 import JSZip from "jszip"
+import { AppStorage } from "@/core/Storage"
 
 import { EditorProvider } from "@/context/EditorContext"
 import { EditorPage } from "@/pages/EditorPage"
@@ -100,9 +101,9 @@ export function App() {
         }
 
         // Replace global workspace
-        localStorage.setItem("rig_workspace", JSON.stringify(skeletonData));
+        await AppStorage.setItem("rig_workspace", JSON.stringify(skeletonData));
         if (animData) {
-           localStorage.setItem("anim_workspace", JSON.stringify(animData));
+           await AppStorage.setItem("anim_workspace", JSON.stringify(animData));
         }
 
         const newId = Date.now().toString();
@@ -137,10 +138,11 @@ export function App() {
   const [deleteModal, setDeleteModal] = useState<{isOpen: boolean, id: string, type: 'project'|'group'} | null>(null)
 
   useEffect(() => {
-    try {
-      const savedProj = localStorage.getItem("id_projects")
-      if (savedProj) {
-        const parsed = JSON.parse(savedProj).filter((p: any) => p.type !== "library");
+    const loadStorage = async () => {
+      try {
+        const savedProj = await AppStorage.getItem("id_projects")
+        if (savedProj) {
+          const parsed = JSON.parse(savedProj).filter((p: any) => p.type !== "library");
         if (parsed.length > 0) {
           setProjects(parsed);
         } else {
@@ -172,9 +174,11 @@ export function App() {
         saveProjects([defaultProj]);
       }
       
-      const savedGroups = localStorage.getItem("id_groups")
+      const savedGroups = await AppStorage.getItem("id_groups")
       if (savedGroups) setGroups(JSON.parse(savedGroups))
     } catch(e) {}
+    };
+    loadStorage();
   }, [])
 
   // Reset active group when switching tabs
@@ -182,14 +186,14 @@ export function App() {
     setActiveGroupId(null)
   }, [activeTab])
 
-  const saveProjects = (p: Project[]) => {
+  const saveProjects = async (p: Project[]) => {
     setProjects(p)
-    localStorage.setItem("id_projects", JSON.stringify(p))
+    await AppStorage.setItem("id_projects", JSON.stringify(p))
   }
 
-  const saveGroups = (g: ProjectGroup[]) => {
+  const saveGroups = async (g: ProjectGroup[]) => {
     setGroups(g)
-    localStorage.setItem("id_groups", JSON.stringify(g))
+    await AppStorage.setItem("id_groups", JSON.stringify(g))
   }
 
   const handleCreateProject = () => {
@@ -251,8 +255,12 @@ export function App() {
     setDeleteModal(null);
   }
 
-  const handleClearData = () => {
+  const handleClearData = async () => {
     localStorage.clear()
+    await AppStorage.setItem("id_projects", "[]");
+    await AppStorage.setItem("id_groups", "[]");
+    await AppStorage.setItem("rig_workspace", "");
+    await AppStorage.setItem("anim_workspace", "");
     window.location.reload()
   }
 
