@@ -1,6 +1,6 @@
 import React, { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { ChevronLeft, ChevronRight, Settings, Library, Layers, ListTree, SlidersHorizontal, MousePointer2, MousePointerClick, SquareDashedMousePointer, SplinePointer, Square, Circle, Triangle, Clapperboard, Plus, Bone as BoneIcon, Video, Undo2, Redo2, RotateCw, Move, Maximize, Play, Pause, Download, PenTool, Image as ImageIcon } from "lucide-react"
+import { ChevronLeft, ListTree, MousePointer2, SplinePointer, SquareDashedMousePointer, PenTool, Circle, Square, Triangle, BoxSelect, SlidersHorizontal, Layers, Plus, Video, Play, Pause, ChevronRight, Settings, Undo2, Redo2, Download, RotateCw, Move, Maximize } from "lucide-react"
 
 import { useEditor } from "@/context/EditorContext"
 import { CanvasArea } from "@/components/editor/CanvasArea"
@@ -25,7 +25,8 @@ export function EditorPage({ onBack }: { onBack: () => void }) {
     currentTime, setCurrentTime,
     duration, fps,
     isPlaying, setIsPlaying,
-    undo, redo, canUndo, canRedo
+    undo, redo, canUndo, canRedo,
+    handleExportZip
   } = useEditor()
   
   const [activeLeftTab, setActiveLeftTab] = useState<string | null>(null)
@@ -127,6 +128,19 @@ export function EditorPage({ onBack }: { onBack: () => void }) {
             {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current" />}
           </button>
         </div>
+      </div>
+
+      {/* Top Right: Export Button */}
+      <div className="absolute top-1 right-1 z-[80]">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={handleExportZip} 
+          className="w-12 h-12 rounded-full bg-blue-600/90 backdrop-blur-xl border border-white/20 text-white hover:bg-blue-500 hover:scale-105 transition-all shadow-[0_0_15px_rgba(37,99,235,0.5)]" 
+          title="Export Project (.ZIP)"
+        >
+          <Download className="w-5 h-5" />
+        </Button>
       </div>
 
       <FloatingSidebar side="left">

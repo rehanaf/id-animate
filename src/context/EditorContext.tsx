@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState } from "react";
 import { Skeleton } from "@/core/Skeleton.js";
 import { Animation } from "@/core/Animation.js";
 import { Bone } from "@/core/Bone.js";
+import JSZip from "jszip";
 
 interface EditorContextType {
   skeleton: Skeleton | null;
@@ -41,6 +42,7 @@ interface EditorContextType {
   redo: () => void;
   canUndo: boolean;
   canRedo: boolean;
+  handleExportZip: () => Promise<void>;
 }
 
 const EditorContext = createContext<EditorContextType | undefined>(undefined);
@@ -184,6 +186,73 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
     }
   }, [currentAnimation, skeleton])
 
+  const handleExportZip = async () => {
+    if (!skeleton) return;
+    
+    const zip = new JSZip();
+    const manifest = {
+      type: "id-animate-project",
+      version: "1.0",
+      content: ["skeleton", "animations", "images"],
+      timestamp: new Date().toISOString()
+    };
+    zip.file("manifest.json", JSON.stringify(manifest, null, 2));
+
+    const imagesFolder = zip.folder("images");
+    if (!imagesFolder) return;
+    
+    // Extract base data
+    const skeletonData = JSON.parse(skeleton.exportToJSON());
+    const animData = currentAnimation ? JSON.parse(currentAnimation.exportToJSON()) : null;
+
+    let imageCounter = 1;
+
+    // Helper to recursively find and extract images
+    const extractImages = (boneObj: any) => {
+      if (boneObj.assetType === "image" && boneObj.assetData && boneObj.assetData.startsWith("data:image")) {
+        try {
+          const parts = boneObj.assetData.split(',');
+          const mime = parts[0].match(/:(.*?);/)[1];
+          const ext = mime === "image/png" ? "png" : mime === "image/jpeg" ? "jpg" : "png";
+          const base64Data = parts[1];
+          
+          const safeName = boneObj.name ? boneObj.name.replace(/[^a-z0-9]/gi, '_').toLowerCase() : "img";
+          const filename = `${safeName}_${imageCounter++}.${ext}`;
+          
+          imagesFolder.file(filename, base64Data, {base64: true});
+          
+          boneObj.assetUrl = `images/${filename}`;
+          delete boneObj.assetData;
+        } catch(e) {
+          console.error("Failed to extract image", e);
+        }
+      }
+      if (boneObj.children && Array.isArray(boneObj.children)) {
+        boneObj.children.forEach(extractImages);
+      }
+    };
+
+    if (skeletonData.bones) {
+      extractImages(skeletonData.bones);
+    }
+    
+    zip.file("skeleton.json", JSON.stringify(skeletonData, null, 2));
+    if (animData) {
+      zip.file("animation.json", JSON.stringify(animData, null, 2));
+    }
+
+    const content = await zip.generateAsync({ type: "blob" });
+    const url = URL.createObjectURL(content);
+    const a = document.createElement("a");
+    a.href = url;
+    
+    const projectName = skeleton.name ? skeleton.name.replace(/[^a-z0-9]/gi, '_').toLowerCase() : "id-animate-project";
+    a.download = `${projectName}.zip`;
+    
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <EditorContext.Provider value={{
       skeleton, setSkeleton,
@@ -204,9 +273,11 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
       canvasWidth, setCanvasWidth,
       canvasHeight, setCanvasHeight,
       revision, forceUpdate,
-      pushHistory, undo, redo,
+      pushHistory, undo,
+      redo,
       canUndo: historyIndex > 0,
-      canRedo: historyIndex < history.length - 1
+      canRedo: historyIndex < history.length - 1,
+      handleExportZip
     }}>
       {children}
     </EditorContext.Provider>
