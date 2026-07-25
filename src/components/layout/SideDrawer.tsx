@@ -27,12 +27,12 @@ export function SideDrawer({ side, activeTab, onClose, headerAction, children }:
       onOpenChange={(open) => !open && onClose()}
     >
       <DrawerContent 
-        className={`rounded-3xl border border-white/10 bg-[#15151a]/95 backdrop-blur-2xl shadow-2xl text-white after:hidden ${side === 'bottom' ? 'h-auto w-auto max-w-[600px] mx-auto' : 'w-[200px] md:w-[300px]'}`}
+        className={`rounded-3xl border border-white/10 bg-[#15151a]/95 backdrop-blur-2xl shadow-2xl text-white after:hidden ${side === 'bottom' ? 'h-auto w-auto mx-12' : 'w-[200px] md:w-[300px]'}`}
         style={side === "left" 
-          ? { left: '56px', top: '56px', height: 'calc(100vh - 60px)' } 
+          ? { left: '48px', top: '48px', height: 'calc(100vh - 52px)' } 
           : side === "right" 
-          ? { right: '56px', left: 'auto', top: '56px', height: 'calc(100vh - 60px)' }
-          : { bottom: '4px', left: '56px', right: '56px', margin: '0 auto', top: 'auto' }
+          ? { right: '48px', left: 'auto', top: '48px', height: 'calc(100vh - 52px)' }
+          : { bottom: '4px', left: '0', right: '0', top: 'auto' }
         }
       >
         <DrawerHeader className="border-b border-white/5 py-1.5 px-3 shrink-0 flex flex-row items-center justify-between !text-left bg-black/20">

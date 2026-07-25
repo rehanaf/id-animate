@@ -20,11 +20,11 @@ export function SidebarButton({
     <Button 
       variant={active ? "default" : "ghost"} 
       size="icon" 
-      className={`w-10 h-10 rounded-full transition-all duration-300 ${active ? `${activeColorClass} text-white shadow-lg` : "text-gray-400 hover:text-white hover:bg-white/10"}`} 
+      className={`w-8 h-8 rounded-full transition-all duration-300 ${active ? `${activeColorClass} text-white shadow-lg` : "text-gray-400 hover:text-white hover:bg-white/10"}`} 
       title={title}
       onClick={onClick}
     >
-      <Icon className="w-5 h-5" />
+      <Icon className="w-4 h-4" />
     </Button>
   )
 }

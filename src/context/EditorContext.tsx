@@ -88,37 +88,7 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
             finalSkel = parsed;
             const savedAnim = await AppStorage.getItem("anim_workspace");
             if (savedAnim) finalAnim = Animation.fromJSON(savedAnim);
-          } else {
-          // BUILD DEFAULT STICKMAN
-          finalSkel.name = "Stickman";
-          const hips = new Bone("Hips"); hips.assetType = "shape"; hips.shapeType = "circle"; hips.assetWidth = 30; hips.assetHeight = 30; hips.localTransform.y = -50;
-          const torso = new Bone("Torso"); torso.assetType = "shape"; torso.shapeType = "rect"; torso.assetWidth = 30; torso.assetHeight = 80; torso.localTransform.y = -60;
-          const head = new Bone("Head"); head.assetType = "shape"; head.shapeType = "circle"; head.assetWidth = 40; head.assetHeight = 40; head.localTransform.y = -60;
-          const upperArmL = new Bone("UpperArm_L"); upperArmL.assetType = "shape"; upperArmL.shapeType = "rect"; upperArmL.assetWidth = 20; upperArmL.assetHeight = 60; upperArmL.localTransform.x = -25; upperArmL.localTransform.y = -40; upperArmL.localTransform.rotation = 45;
-          const lowerArmL = new Bone("LowerArm_L"); lowerArmL.assetType = "shape"; lowerArmL.shapeType = "rect"; lowerArmL.assetWidth = 15; lowerArmL.assetHeight = 50; lowerArmL.localTransform.y = -50;
-          const upperArmR = new Bone("UpperArm_R"); upperArmR.assetType = "shape"; upperArmR.shapeType = "rect"; upperArmR.assetWidth = 20; upperArmR.assetHeight = 60; upperArmR.localTransform.x = 25; upperArmR.localTransform.y = -40; upperArmR.localTransform.rotation = -45;
-          const lowerArmR = new Bone("LowerArm_R"); lowerArmR.assetType = "shape"; lowerArmR.shapeType = "rect"; lowerArmR.assetWidth = 15; lowerArmR.assetHeight = 50; lowerArmR.localTransform.y = -50;
-          const thighL = new Bone("Thigh_L"); thighL.assetType = "shape"; thighL.shapeType = "rect"; thighL.assetWidth = 20; thighL.assetHeight = 70; thighL.localTransform.x = -15; thighL.localTransform.rotation = 15;
-          const calfL = new Bone("Calf_L"); calfL.assetType = "shape"; calfL.shapeType = "rect"; calfL.assetWidth = 15; calfL.assetHeight = 60; calfL.localTransform.y = -60;
-          const thighR = new Bone("Thigh_R"); thighR.assetType = "shape"; thighR.shapeType = "rect"; thighR.assetWidth = 20; thighR.assetHeight = 70; thighR.localTransform.x = 15; thighR.localTransform.rotation = -15;
-          const calfR = new Bone("Calf_R"); calfR.assetType = "shape"; calfR.shapeType = "rect"; calfR.assetWidth = 15; calfR.assetHeight = 60; calfR.localTransform.y = -60;
-          
-          finalSkel.root.addChild(hips);
-          hips.addChild(torso); torso.addChild(head);
-          torso.addChild(upperArmL); upperArmL.addChild(lowerArmL);
-          torso.addChild(upperArmR); upperArmR.addChild(lowerArmR);
-          hips.addChild(thighL); thighL.addChild(calfL);
-          hips.addChild(thighR); thighR.addChild(calfR);
-          finalSkel.root.saveSetupPose();
-          finalSkel.root.updateWorldTransform();
-          
-          // BUILD DEFAULT WALK ANIMATION
-          finalAnim = new Animation("Walk", 1.0);
-          const kf = (time: number, bone: string, rot: number) => finalAnim.setBonePose(time, bone, "rotation", rot, 0);
-          kf(0, "Thigh_L", 30); kf(0, "Calf_L", -20); kf(0, "Thigh_R", -30); kf(0, "Calf_R", -10); kf(0, "UpperArm_L", -30); kf(0, "UpperArm_R", 30);
-          kf(0.5, "Thigh_L", -30); kf(0.5, "Calf_L", -10); kf(0.5, "Thigh_R", 30); kf(0.5, "Calf_R", -20); kf(0.5, "UpperArm_L", 30); kf(0.5, "UpperArm_R", -30);
-          kf(1.0, "Thigh_L", 30); kf(1.0, "Calf_L", -20); kf(1.0, "Thigh_R", -30); kf(1.0, "Calf_R", -10); kf(1.0, "UpperArm_L", -30); kf(1.0, "UpperArm_R", 30);
-        }
+          }
         } catch (e) {
           console.error("Failed to load rig_workspace:", e);
         }

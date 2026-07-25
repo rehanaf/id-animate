@@ -1,6 +1,6 @@
 import React, { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { ChevronLeft, ListTree, MousePointer2, SplinePointer, SquareDashedMousePointer, PenTool, Circle, Square, Triangle, BoxSelect, SlidersHorizontal, Layers, Plus, Video, Play, Pause, ChevronRight, Settings, Undo2, Redo2, Download, RotateCw, Move, Maximize } from "lucide-react"
+import { ChevronLeft, ListTree, MousePointer2, SplinePointer, SquareDashedMousePointer, PenTool, Circle, Square, Triangle, BoxSelect, SlidersHorizontal, Layers, Plus, Minus, Video, Play, Pause, ChevronRight, Settings, Undo2, Redo2, Download, RotateCw, Move, Maximize, MoveDiagonal, MoreVertical, Save } from "lucide-react"
 
 import { useEditor } from "@/context/EditorContext"
 import { CanvasArea } from "@/components/editor/CanvasArea"
@@ -18,12 +18,12 @@ import { Bone } from "@/core/Bone.js"
 export function EditorPage({ onBack }: { onBack: () => void }) {
   const { 
     skeleton,
-    editorMode,
+    editorMode, setEditorMode,
     activeTool, setActiveTool, 
     selectMode, setSelectMode,
     activeShape, setActiveShape,
     currentTime, setCurrentTime,
-    duration, fps,
+    duration, setDuration, fps,
     isPlaying, setIsPlaying,
     undo, redo, canUndo, canRedo,
     handleExportZip
@@ -34,8 +34,9 @@ export function EditorPage({ onBack }: { onBack: () => void }) {
   const [activeBottomTab, setActiveBottomTab] = useState<string | null>(null)
   const [showShapeMenu, setShowShapeMenu] = useState<boolean>(false)
   const [showEditMenu, setShowEditMenu] = useState<boolean>(false)
+  const [showExportMenu, setShowExportMenu] = useState<boolean>(false)
 
-  const currentFrame = Math.round(currentTime * fps)
+  const currentFrameIndex = Math.round(currentTime * fps)
   const totalFrames = Math.max(1, Math.round(duration * fps) + 1)
   
   const setFrame = (f: number) => {
@@ -53,79 +54,134 @@ export function EditorPage({ onBack }: { onBack: () => void }) {
           variant="ghost" 
           size="icon" 
           onClick={onBack} 
-          className="w-12 h-12 rounded-full bg-[#15151a]/80 backdrop-blur-xl border border-white/10 text-gray-300 hover:bg-white/10 hover:text-white transition-all shadow-2xl" 
+          className="w-10 h-10 rounded-full bg-[#15151a]/80 backdrop-blur-xl border border-white/10 text-gray-300 hover:bg-white/10 hover:text-white transition-all shadow-2xl" 
           title="Back to Menu"
         >
-          <ChevronLeft className="w-5 h-5" />
+          <ChevronLeft className="w-4 h-4" />
         </Button>
       </div>
 
       {/* Left Toolbar (Undo, Redo, Transform Tools) */}
-      <div className="absolute top-1 left-14 z-[80]">
+      <div className="absolute top-1 left-12 z-[80] flex items-center gap-1">
+        {/* Undo Redo Bar */}
         <div className="flex bg-[#15151a]/80 backdrop-blur-xl border border-white/10 p-1 rounded-full shadow-2xl gap-0.5">
           <button 
             onClick={undo}
             disabled={!canUndo}
-            className="w-10 h-10 flex items-center justify-center rounded-full text-gray-400 hover:text-white hover:bg-white/5 transition-all disabled:opacity-30 disabled:pointer-events-none" 
+            className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-white hover:bg-white/5 transition-all disabled:opacity-30 disabled:pointer-events-none" 
             title="Undo"
           ><Undo2 className="w-4 h-4" /></button>
           
           <button 
             onClick={redo}
             disabled={!canRedo}
-            className="w-10 h-10 flex items-center justify-center rounded-full text-gray-400 hover:text-white hover:bg-white/5 transition-all disabled:opacity-30 disabled:pointer-events-none" 
+            className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-white hover:bg-white/5 transition-all disabled:opacity-30 disabled:pointer-events-none" 
             title="Redo"
           ><Redo2 className="w-4 h-4" /></button>
-          <div className="w-px h-6 bg-white/10 mx-1" />
+        </div>
+
+        {/* Transform Tools Bar */}
+        <div className="flex bg-[#15151a]/80 backdrop-blur-xl border border-white/10 p-1 rounded-full shadow-2xl gap-0.5">
           <button 
             onClick={() => { setSelectMode("move"); setActiveTool("select"); }}
-            className={`w-10 h-10 flex items-center justify-center rounded-full transition-all ${selectMode === "move" ? "bg-blue-600/20 text-blue-400" : "text-gray-400 hover:text-white hover:bg-white/5"}`} 
+            className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${selectMode === "move" && activeTool === "select" ? "bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.3)]" : "text-gray-400 hover:text-white hover:bg-white/5"}`} 
             title="Move Tool"
           ><Move className="w-4 h-4" /></button>
           
           <button 
             onClick={() => { setSelectMode("rotate"); setActiveTool("select"); }}
-            className={`w-10 h-10 flex items-center justify-center rounded-full transition-all ${selectMode === "rotate" ? "bg-blue-600/20 text-blue-400" : "text-gray-400 hover:text-white hover:bg-white/5"}`} 
+            className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${selectMode === "rotate" && activeTool === "select" ? "bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.3)]" : "text-gray-400 hover:text-white hover:bg-white/5"}`} 
             title="Rotate Tool"
           ><RotateCw className="w-4 h-4" /></button>
           
           <button 
             onClick={() => { setSelectMode("scale"); setActiveTool("select"); }}
-            className={`w-10 h-10 flex items-center justify-center rounded-full transition-all ${selectMode === "scale" ? "bg-blue-600/20 text-blue-400" : "text-gray-400 hover:text-white hover:bg-white/5"}`} 
+            className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${selectMode === "scale" && activeTool === "select" ? "bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.3)]" : "text-gray-400 hover:text-white hover:bg-white/5"}`} 
             title="Scale Tool"
+          ><MoveDiagonal className="w-4 h-4" /></button>
+        </div>
+
+        {/* Camera Tools Bar */}
+        <div className="flex bg-[#15151a]/80 backdrop-blur-xl border border-white/10 p-1 rounded-full shadow-2xl gap-0.5 items-center">
+          <button 
+            onClick={() => window.dispatchEvent(new CustomEvent('zoom-step', { detail: -1 }))}
+            className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-white hover:bg-white/5 transition-all" 
+            title="Zoom Out"
+          ><Minus className="w-4 h-4" /></button>
+          
+          <span id="zoom-indicator" className="text-[10px] font-mono font-bold text-gray-300 w-10 text-center select-none">100%</span>
+          
+          <button 
+            onClick={() => window.dispatchEvent(new CustomEvent('zoom-step', { detail: 1 }))}
+            className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-white hover:bg-white/5 transition-all" 
+            title="Zoom In"
+          ><Plus className="w-4 h-4" /></button>
+
+          <div className="w-px h-5 bg-white/10 mx-1" />
+
+          <button 
+            onClick={() => window.dispatchEvent(new CustomEvent('reset-camera'))}
+            className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-white hover:bg-white/5 transition-all" 
+            title="Fit to Screen"
           ><Maximize className="w-4 h-4" /></button>
-          
-          <div className="w-px h-6 bg-white/10 mx-1" />
-          
         </div>
       </div>
 
+      {/* Top Center: Mode Switcher */}
+      <div className="absolute top-1 left-1/2 -translate-x-1/2 z-[80]">
+        <div className="flex items-center bg-[#15151a]/80 backdrop-blur-xl border border-white/10 p-1 rounded-full shadow-2xl">
+          <button 
+            className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all ${editorMode === "rig" ? "bg-orange-500 text-white shadow-[0_0_15px_rgba(249,115,22,0.4)]" : "text-gray-400 hover:text-white hover:bg-white/5"}`}
+            onClick={() => setEditorMode("rig")}
+          >
+            Rigging
+          </button>
+          <button 
+            className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all ${editorMode === "animate" ? "bg-purple-600 text-white shadow-[0_0_15px_rgba(147,51,234,0.4)]" : "text-gray-400 hover:text-white hover:bg-white/5"}`}
+            onClick={() => setEditorMode("animate")}
+          >
+            Animate
+          </button>
+        </div>
+      </div>
 
-      {/* Top Right: Animation Controls (Moved to right-14) */}
-      <div className="absolute top-1 right-14 z-[80]">
+      {/* Top Right: Animation Controls (Moved to right-12) */}
+      <div className="absolute top-1 right-12 z-[80]">
         <div className="flex items-center bg-[#15151a]/80 backdrop-blur-xl border border-white/10 p-1 rounded-full shadow-2xl gap-0.5">
           <button 
-            className="w-10 h-10 flex items-center justify-center rounded-full text-gray-400 hover:text-white hover:bg-white/5 transition-all disabled:opacity-30 disabled:pointer-events-none" 
+            className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-white hover:bg-white/5 transition-all disabled:opacity-30 disabled:pointer-events-none" 
             title="Prev Frame"
-            onClick={() => setFrame(Math.max(0, currentFrame - 1))}
-            disabled={currentFrame <= 0}
-          ><ChevronLeft className="w-5 h-5" /></button>
+            onClick={() => setFrame(Math.max(0, currentFrameIndex - 1))}
+            disabled={currentFrameIndex <= 0}
+          ><ChevronLeft className="w-4 h-4" /></button>
+          
+          <div className="text-xs font-mono font-bold w-12 text-center text-gray-300 select-none flex flex-col justify-center leading-none">
+            {currentFrameIndex + 1}/{totalFrames}
+          </div>
+
+          {currentFrameIndex >= totalFrames - 1 ? (
+             <button 
+                className="w-8 h-8 flex items-center justify-center rounded-full text-blue-400 hover:text-blue-300 hover:bg-blue-500/20 transition-all" 
+                title="Add New Frame"
+                onClick={() => { setDuration(duration + 1/fps); setFrame(currentFrameIndex + 1); }}
+              ><Plus className="w-4 h-4" /></button>
+          ) : (
+             <button 
+               className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-white hover:bg-white/5 transition-all disabled:opacity-30 disabled:pointer-events-none" 
+               title="Next Frame"
+               onClick={() => setFrame(Math.min(totalFrames - 1, currentFrameIndex + 1))}
+             ><ChevronRight className="w-4 h-4" /></button>
+          )}
           
           <button 
-            className="w-10 h-10 flex items-center justify-center rounded-full text-gray-400 hover:text-white hover:bg-white/5 transition-all disabled:opacity-30 disabled:pointer-events-none" 
-            title="Next Frame"
-            onClick={() => setFrame(Math.min(totalFrames - 1, currentFrame + 1))}
-            disabled={currentFrame >= totalFrames - 1}
-          ><ChevronRight className="w-5 h-5" /></button>
-          
-          <button 
-            className={`w-10 h-10 flex items-center justify-center rounded-full transition-all ${
+            className={`w-8 h-8 flex items-center justify-center rounded-full transition-all disabled:opacity-30 disabled:pointer-events-none ${
               isPlaying ? "text-red-400 hover:text-red-300 hover:bg-red-500/20" : "text-purple-400 hover:text-purple-300 hover:bg-purple-500/20"
             }`}
             title={isPlaying ? "Pause" : "Play"}
             onClick={() => setIsPlaying(!isPlaying)}
+            disabled={totalFrames <= 1}
           >
-            {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current" />}
+            {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
           </button>
         </div>
       </div>
@@ -135,12 +191,33 @@ export function EditorPage({ onBack }: { onBack: () => void }) {
         <Button 
           variant="ghost" 
           size="icon" 
-          onClick={handleExportZip} 
-          className="w-12 h-12 rounded-full bg-blue-600/90 backdrop-blur-xl border border-white/20 text-white hover:bg-blue-500 hover:scale-105 transition-all shadow-[0_0_15px_rgba(37,99,235,0.5)]" 
-          title="Export Project (.ZIP)"
+          onClick={() => setShowExportMenu(!showExportMenu)} 
+          className="w-10 h-10 rounded-full bg-[#15151a]/80 backdrop-blur-xl border border-white/10 text-gray-400 hover:text-white hover:bg-white/5 transition-all shadow-2xl" 
+          title="More Options"
         >
-          <Download className="w-5 h-5" />
+          <MoreVertical className="w-4 h-4" />
         </Button>
+
+        {showExportMenu && (
+          <div className="absolute top-12 right-0 bg-[#1a1a24] border border-[#333] rounded-lg shadow-2xl overflow-hidden z-[100] w-56 flex flex-col animate-in fade-in zoom-in-95 duration-100 ring-1 ring-black/50">
+             <button className="flex items-center px-4 py-3 hover:bg-[#2a2a35] text-xs font-medium text-gray-200 transition-colors" onClick={() => { handleExportZip(); setShowExportMenu(false); }}>
+                <Download className="w-4 h-4 mr-2 opacity-70" /> Export Project (.ZIP)
+             </button>
+             <div className="w-full h-px bg-[#333]"></div>
+             <button className="flex items-center px-4 py-2 hover:bg-[#2a2a35] text-xs text-gray-400 hover:text-gray-200 transition-colors" onClick={() => { setShowExportMenu(false); }}>
+                Export Animation
+             </button>
+             <button className="flex items-center px-4 py-2 hover:bg-[#2a2a35] text-xs text-gray-400 hover:text-gray-200 transition-colors" onClick={() => { setShowExportMenu(false); }}>
+                Export Skeleton
+             </button>
+             <button className="flex items-center px-4 py-2 hover:bg-[#2a2a35] text-xs text-gray-400 hover:text-gray-200 transition-colors" onClick={() => { setShowExportMenu(false); }}>
+                Export Selected Skeleton
+             </button>
+             <button className="flex items-center px-4 py-2 hover:bg-[#2a2a35] text-xs text-gray-400 hover:text-gray-200 transition-colors" onClick={() => { setShowExportMenu(false); }}>
+                Save Selected Skeleton
+             </button>
+          </div>
+        )}
       </div>
 
       <FloatingSidebar side="left">

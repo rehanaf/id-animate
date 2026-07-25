@@ -164,15 +164,26 @@ export function CanvasArea() {
     const ctx = canvas.getContext("2d")
     if (!ctx) return
 
-    // Setup high DPI canvas
-    const resize = () => {
-      const rect = canvas.getBoundingClientRect()
-      canvas.width = rect.width * window.devicePixelRatio
-      canvas.height = rect.height * window.devicePixelRatio
-      ctx.scale(window.devicePixelRatio, window.devicePixelRatio)
+    // Listen for fit-to-screen request
+    const handleResetCamera = () => {
+      cameraRef.current = { x: 0, y: 0, zoom: 1 }
     }
-    window.addEventListener("resize", resize)
-    resize()
+    window.addEventListener("reset-camera", handleResetCamera)
+
+    // Listen for zoom buttons (+/-)
+    const handleZoomStep = (e: any) => {
+      const step = e.detail; // 1 for +, -1 for -
+      let currentPct = cameraRef.current.zoom * 100;
+      let nextPct;
+      if (step > 0) {
+        nextPct = Math.ceil((currentPct + 1) / 5) * 5; 
+      } else {
+        nextPct = Math.floor((currentPct - 1) / 5) * 5;
+      }
+      nextPct = Math.max(5, Math.min(nextPct, 1000));
+      cameraRef.current.zoom = nextPct / 100;
+    }
+    window.addEventListener("zoom-step", handleZoomStep)
 
     // Global failsafe for pointer release to prevent sticky drags
     const handleGlobalPointerUp = () => {
@@ -209,8 +220,12 @@ export function CanvasArea() {
         
         if (isPlayingRef.current) {
           let newTime = currentTimeRef.current + dt
-          if (durationRef.current > 0 && newTime > durationRef.current) {
-            newTime %= durationRef.current
+          if (durationRef.current > 0) {
+             if (newTime > durationRef.current) {
+                newTime %= durationRef.current
+             }
+          } else {
+             newTime = 0
           }
           setCurrentTime(newTime)
           if (!dragState.current.isDragging) {
@@ -232,10 +247,26 @@ export function CanvasArea() {
       }
 
       const rect = canvas.getBoundingClientRect()
+      const dpr = window.devicePixelRatio || 1;
+      const expectedWidth = Math.round(rect.width * dpr);
+      const expectedHeight = Math.round(rect.height * dpr);
+
+      // Auto-resize canvas if bounds or DPI changed
+      if (canvas.width !== expectedWidth || canvas.height !== expectedHeight) {
+        canvas.width = expectedWidth;
+        canvas.height = expectedHeight;
+        ctx.scale(dpr, dpr);
+      }
       
       // Base canvas background
-      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      ctx.clearRect(0, 0, rect.width, rect.height)
       
+      // Update UI zoom indicator without triggering React re-renders
+      const zoomIndicator = document.getElementById("zoom-indicator")
+      if (zoomIndicator) {
+        zoomIndicator.innerText = Math.round(cameraRef.current.zoom * 100) + "%"
+      }
+
       // Setup camera matrix
       ctx.save()
       ctx.translate(rect.width / 2 + cameraRef.current.x, rect.height / 2 + 100 + cameraRef.current.y)
@@ -675,7 +706,8 @@ export function CanvasArea() {
     render(performance.now())
     
     return () => {
-      window.removeEventListener("resize", resize)
+      window.removeEventListener("reset-camera", handleResetCamera)
+      window.removeEventListener("zoom-step", handleZoomStep)
       window.removeEventListener("pointerup", handleGlobalPointerUp)
       window.removeEventListener("pointercancel", handleGlobalPointerUp)
       cancelAnimationFrame(animationId)

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Settings, Plus, Video, Bone, FolderPlus, Folder, FolderOpen, ArrowLeft, MoreVertical, Copy, Pencil, Trash2, Upload } from "lucide-react"
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from "@/components/ui/drawer"
@@ -11,6 +11,7 @@ import { StatusBar } from '@capacitor/status-bar'
 
 import { EditorProvider } from "@/context/EditorContext"
 import { EditorPage } from "@/pages/EditorPage"
+import { generateProjectThumbnail } from "@/core/ThumbnailGenerator"
 
 export interface ProjectGroup {
   id: string
@@ -27,6 +28,7 @@ export interface Project {
   fps: number
   lastModified: number
   data?: any
+  thumbnail?: string
   groupId?: string | null
 }
 
@@ -36,6 +38,7 @@ export function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isClearDataConfirmOpen, setIsClearDataConfirmOpen] = useState(false)
   const [activeGroupId, setActiveGroupId] = useState<string | null>(null)
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(null)
   
   const [projects, setProjects] = useState<Project[]>([])
   const [groups, setGroups] = useState<ProjectGroup[]>([])
@@ -157,46 +160,120 @@ export function App() {
   useEffect(() => {
     const loadStorage = async () => {
       try {
+        const initDefaults = () => {
+          const modules = import.meta.glob('@/assets/scenes/**/*.json', { eager: true }) as Record<string, any>;
+          const defaultGroups: ProjectGroup[] = [];
+          const defaultProjects: Project[] = [];
+          const groupMap = new Map<string, ProjectGroup>();
+
+          for (const [path, module] of Object.entries(modules)) {
+            // Path format expected: /src/assets/scenes/{type}/{group}/{project}/data.json
+            const parts = path.split('/');
+            const scenesIndex = parts.indexOf('scenes');
+            if (scenesIndex === -1) continue;
+
+            const typeStr = parts[scenesIndex + 1];
+            const groupName = parts[scenesIndex + 2];
+            const projectName = parts[scenesIndex + 3];
+
+            if (!typeStr || !groupName || !projectName) continue;
+
+            const type = typeStr === 'animations' ? 'animation' : 'skeleton';
+            const groupId = `group-predefined-${type}-${groupName.toLowerCase()}`;
+
+            if (!groupMap.has(groupId)) {
+              const newGroup: ProjectGroup = {
+                id: groupId,
+                name: groupName,
+                type: type
+              };
+              groupMap.set(groupId, newGroup);
+              defaultGroups.push(newGroup);
+            }
+
+            const dataContent = module.default || module;
+            const newProject: Project = {
+              id: `proj-predefined-${type}-${groupName.toLowerCase()}-${projectName.toLowerCase()}`,
+              name: projectName,
+              type: type,
+              groupId: groupId,
+              canvasWidth: dataContent?.canvasWidth || 800,
+              canvasHeight: dataContent?.canvasHeight || 600,
+              fps: dataContent?.fps || 12,
+              lastModified: Date.now(),
+              data: dataContent
+            };
+            defaultProjects.push(newProject);
+          }
+
+          setProjects(defaultProjects);
+          setGroups(defaultGroups);
+          AppStorage.setItem("id_projects", JSON.stringify(defaultProjects));
+          AppStorage.setItem("id_groups", JSON.stringify(defaultGroups));
+        };
+
+        const savedGroups = await AppStorage.getItem("id_groups")
+        if (savedGroups) setGroups(JSON.parse(savedGroups))
+
         const savedProj = await AppStorage.getItem("id_projects")
         if (savedProj) {
           const parsed = JSON.parse(savedProj).filter((p: any) => p.type !== "library");
-        if (parsed.length > 0) {
-          setProjects(parsed);
+          if (parsed.length > 0) {
+            setProjects(parsed);
+          } else {
+            initDefaults();
+          }
         } else {
-          // Add default stickman project
-          const defaultProj: Project = {
-            id: "default-stickman",
-            name: "Stickman Default",
-            type: "animation",
-            canvasWidth: 800,
-            canvasHeight: 600,
-            fps: 8,
-            lastModified: Date.now(),
-            data: null
-          };
-          saveProjects([defaultProj]);
+          initDefaults();
         }
-      } else {
-        // Add default stickman project
-        const defaultProj: Project = {
-          id: "default-stickman",
-          name: "Stickman Default",
-          type: "animation",
-          canvasWidth: 800,
-          canvasHeight: 600,
-          fps: 8,
-          lastModified: Date.now(),
-          data: null
-        };
-        saveProjects([defaultProj]);
-      }
-      
-      const savedGroups = await AppStorage.getItem("id_groups")
-      if (savedGroups) setGroups(JSON.parse(savedGroups))
     } catch(e) {}
     };
     loadStorage();
-  }, [])
+  }, []);
+
+  const hasForcedThumbnailsRef = useRef(false);
+
+  // Background Preview Generation
+  useEffect(() => {
+    if (projects.length === 0) return;
+    
+    const needsForceRun = !hasForcedThumbnailsRef.current;
+    const needsRegularRun = projects.some(p => !p.thumbnail && p.data);
+    
+    if (!needsForceRun && !needsRegularRun) return;
+    
+    if (needsForceRun) {
+      hasForcedThumbnailsRef.current = true;
+    }
+
+    let active = true;
+    const processThumbnails = async () => {
+      let currentProjs = [...projects];
+      let changed = false;
+
+      for (let i = 0; i < currentProjs.length; i++) {
+        const p = currentProjs[i];
+        if (p.data && (!p.thumbnail || needsForceRun)) {
+          try {
+            const thumb = await generateProjectThumbnail(p);
+            if (thumb && active) {
+              currentProjs[i] = { ...p, thumbnail: thumb };
+              changed = true;
+            }
+          } catch(e) {}
+        }
+      }
+      
+      if (changed && active) {
+         setProjects(currentProjs);
+         AppStorage.setItem("id_projects", JSON.stringify(currentProjs));
+      }
+    };
+    
+    processThumbnails();
+    
+    return () => { active = false; };
+  }, [projects]);
 
   // Android Back Button Handler
   useEffect(() => {
@@ -341,10 +418,72 @@ export function App() {
     e.preventDefault()
   }
 
+  const handleBack = async () => {
+    if (activeProjectId) {
+      try {
+        const rigData = await AppStorage.getItem("rig_workspace");
+        const animData = await AppStorage.getItem("anim_workspace");
+        
+        const savedProj = await AppStorage.getItem("id_projects");
+        if (savedProj) {
+          let allProjs = JSON.parse(savedProj);
+          for (let i = 0; i < allProjs.length; i++) {
+            let p = allProjs[i];
+            if (p.id === activeProjectId) {
+              const updatedData = p.type === 'skeleton' ? rigData : { skeleton: rigData, animation: animData };
+              p.data = updatedData;
+              p.lastModified = Date.now();
+              try {
+                 p.thumbnail = await generateProjectThumbnail(p);
+              } catch(e) {}
+              allProjs[i] = p;
+            }
+          }
+          await AppStorage.setItem("id_projects", JSON.stringify(allProjs));
+          setProjects(allProjs);
+        }
+      } catch(e) {}
+    }
+    setActiveProjectId(null);
+    setView("menu");
+  }
+
+  const handleOpenProject = async (proj: Project) => {
+    try {
+      if (proj.type === "skeleton") {
+        if (proj.data) {
+          const rawData = typeof proj.data === "string" ? proj.data : JSON.stringify(proj.data);
+          await AppStorage.setItem("rig_workspace", rawData);
+        } else {
+          await AppStorage.setItem("rig_workspace", "");
+        }
+        await AppStorage.setItem("anim_workspace", "");
+      } else {
+        if (proj.data) {
+          if (proj.data.skeleton) {
+            await AppStorage.setItem("rig_workspace", typeof proj.data.skeleton === "string" ? proj.data.skeleton : JSON.stringify(proj.data.skeleton));
+          } else {
+             await AppStorage.setItem("rig_workspace", "");
+          }
+          if (proj.data.animation) {
+             await AppStorage.setItem("anim_workspace", typeof proj.data.animation === "string" ? proj.data.animation : JSON.stringify(proj.data.animation));
+          } else {
+             await AppStorage.setItem("anim_workspace", "");
+          }
+        } else {
+          await AppStorage.setItem("rig_workspace", "");
+          await AppStorage.setItem("anim_workspace", "");
+        }
+      }
+      setActiveProjectId(proj.id);
+      setView("editor");
+    } catch(e) {}
+  };
+
   if (view === "editor") {
     return (
       <EditorProvider>
-        <EditorPage onBack={() => setView("menu")} />
+        <EditorPage onBack={handleBack} />
       </EditorProvider>
     )
   }
@@ -358,16 +497,22 @@ export function App() {
       draggable
       onDragStart={(e) => handleDragStart(e, proj.id)}
       className="group flex flex-col cursor-pointer"
-      onClick={() => setView("editor")}
+      onClick={() => handleOpenProject(proj)}
     >
       {/* Thumbnail Area - Aspect 3/2 */}
       <div className="relative aspect-[3/2] w-full bg-[#15151a] border border-[#2a2a35] hover:border-[#4a4a55] rounded-xl shadow-lg hover:shadow-xl hover:shadow-blue-900/10 transition-all hover:-translate-y-1 mb-2">
          {/* Inner clipped content */}
          <div className="absolute inset-0 overflow-hidden rounded-xl">
-           <div className="absolute inset-0 opacity-20 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-gray-600 via-transparent to-transparent"></div>
-           <div className="absolute inset-0 flex items-center justify-center">
-             {proj.type === "animation" ? <Video className="w-10 h-10 text-blue-500 opacity-20 group-hover:opacity-40 group-hover:scale-110 transition-all duration-500" /> : <Bone className="w-10 h-10 text-purple-500 opacity-20 group-hover:opacity-40 group-hover:scale-110 transition-all duration-500" />}
-           </div>
+           {proj.thumbnail ? (
+             <img src={proj.thumbnail} alt={proj.name} className="w-full h-full object-contain object-center opacity-80 group-hover:opacity-100 transition-opacity" />
+           ) : (
+             <>
+               <div className="absolute inset-0 opacity-20 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-gray-600 via-transparent to-transparent"></div>
+               <div className="absolute inset-0 flex items-center justify-center">
+                 {proj.type === "animation" ? <Video className="w-10 h-10 text-blue-500 opacity-20 group-hover:opacity-40 group-hover:scale-110 transition-all duration-500" /> : <Bone className="w-10 h-10 text-purple-500 opacity-20 group-hover:opacity-40 group-hover:scale-110 transition-all duration-500" />}
+               </div>
+             </>
+           )}
          </div>
 
          {/* Badges inside card */}
