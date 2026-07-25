@@ -623,14 +623,18 @@ export function CanvasArea() {
           let prevTime = currentTimeRef.current - (1 / fpsRef.current)
           if (prevTime < 0) prevTime = 0
           
-          currentSkel.updateFromAnimation(currentAnimationRef.current, prevTime)
+          animator.applyPose(prevTime)
+          currentSkel.root.updateWorldTransform()
+          drawBoneAssets(currentSkel.root, "prev")
           drawBoneRig(currentSkel.root, "prev")
         }
         if (onionNextRef.current && (durationRef.current === 0 || currentTimeRef.current < durationRef.current)) {
           let nextTime = currentTimeRef.current + (1 / fpsRef.current)
           if (durationRef.current > 0 && nextTime > durationRef.current) nextTime = durationRef.current
           
-          currentSkel.updateFromAnimation(currentAnimationRef.current, nextTime)
+          animator.applyPose(nextTime)
+          currentSkel.root.updateWorldTransform()
+          drawBoneAssets(currentSkel.root, "next")
           drawBoneRig(currentSkel.root, "next")
         }
         // Restore to current time before drawing main skeleton
