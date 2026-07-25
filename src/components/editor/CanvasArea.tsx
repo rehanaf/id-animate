@@ -255,8 +255,10 @@ export function CanvasArea() {
       if (canvas.width !== expectedWidth || canvas.height !== expectedHeight) {
         canvas.width = expectedWidth;
         canvas.height = expectedHeight;
-        ctx.scale(dpr, dpr);
       }
+      
+      // Reset transform every frame to prevent stacking, then apply DPR scale
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       
       // Base canvas background
       ctx.clearRect(0, 0, rect.width, rect.height)

@@ -94,7 +94,10 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
         }
 
         setSkeleton(finalSkel);
-        if (finalAnim) setCurrentAnimation(finalAnim);
+        if (finalAnim) {
+          setCurrentAnimation(finalAnim);
+          if (finalAnim.duration > 0) setDuration(finalAnim.duration);
+        }
       };
       loadWorkspace();
     }

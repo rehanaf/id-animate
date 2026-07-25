@@ -25,6 +25,7 @@ export function EditorPage({ onBack }: { onBack: () => void }) {
     currentTime, setCurrentTime,
     duration, setDuration, fps,
     isPlaying, setIsPlaying,
+    currentAnimation, forceUpdate,
     undo, redo, canUndo, canRedo,
     handleExportZip
   } = useEditor()
@@ -163,7 +164,13 @@ export function EditorPage({ onBack }: { onBack: () => void }) {
              <button 
                 className="w-8 h-8 flex items-center justify-center rounded-full text-blue-400 hover:text-blue-300 hover:bg-blue-500/20 transition-all" 
                 title="Add New Frame"
-                onClick={() => { setDuration(duration + 1/fps); setFrame(currentFrameIndex + 1); }}
+                onClick={() => { 
+                  const newDur = duration + 1/fps;
+                  if (currentAnimation) currentAnimation.duration = newDur;
+                  setDuration(newDur); 
+                  setFrame(currentFrameIndex + 1);
+                  forceUpdate();
+                }}
               ><Plus className="w-4 h-4" /></button>
           ) : (
              <button 
