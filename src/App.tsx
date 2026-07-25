@@ -5,6 +5,9 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from "
 import JSZip from "jszip"
 import { AppStorage } from "@/core/Storage"
 import { App as CapacitorApp } from '@capacitor/app'
+import { Capacitor } from '@capacitor/core'
+import { ScreenOrientation } from '@capacitor/screen-orientation'
+import { StatusBar } from '@capacitor/status-bar'
 
 import { EditorProvider } from "@/context/EditorContext"
 import { EditorPage } from "@/pages/EditorPage"
@@ -137,6 +140,19 @@ export function App() {
   // Custom Modal States
   const [renameModal, setRenameModal] = useState<{isOpen: boolean, id: string, name: string, type: 'project'|'group'} | null>(null)
   const [deleteModal, setDeleteModal] = useState<{isOpen: boolean, id: string, type: 'project'|'group'} | null>(null)
+
+  // Initialize Mobile Options
+  useEffect(() => {
+    const initMobile = async () => {
+      if (Capacitor.isNativePlatform()) {
+         try {
+           await ScreenOrientation.lock({ orientation: 'landscape' });
+           await StatusBar.hide();
+         } catch(e) {}
+      }
+    };
+    initMobile();
+  }, []);
 
   useEffect(() => {
     const loadStorage = async () => {
@@ -345,11 +361,13 @@ export function App() {
       onClick={() => setView("editor")}
     >
       {/* Thumbnail Area - Aspect 3/2 */}
-      <div className="relative aspect-[3/2] w-full bg-[#15151a] border border-[#2a2a35] hover:border-[#4a4a55] rounded-xl overflow-hidden shadow-lg hover:shadow-xl hover:shadow-blue-900/10 transition-all hover:-translate-y-1 mb-2">
-         <div className="absolute inset-0 opacity-20 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-gray-600 via-transparent to-transparent"></div>
-         
-         <div className="absolute inset-0 flex items-center justify-center">
-           {proj.type === "animation" ? <Video className="w-10 h-10 text-blue-500 opacity-20 group-hover:opacity-40 group-hover:scale-110 transition-all duration-500" /> : <Bone className="w-10 h-10 text-purple-500 opacity-20 group-hover:opacity-40 group-hover:scale-110 transition-all duration-500" />}
+      <div className="relative aspect-[3/2] w-full bg-[#15151a] border border-[#2a2a35] hover:border-[#4a4a55] rounded-xl shadow-lg hover:shadow-xl hover:shadow-blue-900/10 transition-all hover:-translate-y-1 mb-2">
+         {/* Inner clipped content */}
+         <div className="absolute inset-0 overflow-hidden rounded-xl">
+           <div className="absolute inset-0 opacity-20 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-gray-600 via-transparent to-transparent"></div>
+           <div className="absolute inset-0 flex items-center justify-center">
+             {proj.type === "animation" ? <Video className="w-10 h-10 text-blue-500 opacity-20 group-hover:opacity-40 group-hover:scale-110 transition-all duration-500" /> : <Bone className="w-10 h-10 text-purple-500 opacity-20 group-hover:opacity-40 group-hover:scale-110 transition-all duration-500" />}
+           </div>
          </div>
 
          {/* Badges inside card */}
@@ -360,16 +378,16 @@ export function App() {
          </div>
          
          {/* Dropdown Menu */}
-         <div className="absolute top-2 right-2 z-10" onClick={(e) => e.stopPropagation()}>
+         <div className="absolute top-2 right-2 z-[60]" onClick={(e) => e.stopPropagation()}>
            <button 
-              className="w-7 h-7 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all text-white backdrop-blur-sm"
+              className="w-8 h-8 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center transition-all text-white backdrop-blur-sm ring-1 ring-white/10 opacity-70 hover:opacity-100 shadow-xl"
               onClick={(e) => { e.stopPropagation(); setActiveDropdown(activeDropdown === proj.id ? null : proj.id); }}
             >
-              <MoreVertical className="w-3.5 h-3.5" />
+              <MoreVertical className="w-4 h-4" />
             </button>
             
             {activeDropdown === proj.id && (
-               <div className="absolute top-8 right-0 bg-[#1a1a24] border border-[#333] rounded-lg shadow-2xl overflow-hidden z-20 w-32 flex flex-col animate-in fade-in zoom-in-95 duration-100">
+               <div className="absolute top-10 right-0 bg-[#1a1a24] border border-[#333] rounded-lg shadow-2xl overflow-hidden z-[70] w-36 flex flex-col animate-in fade-in zoom-in-95 duration-100 ring-1 ring-black/50">
                  <button className="flex items-center px-3 py-2.5 hover:bg-[#2a2a35] text-xs text-gray-200 transition-colors" onClick={(e) => { e.stopPropagation(); setRenameModal({isOpen: true, id: proj.id, name: proj.name, type: 'project'}); setActiveDropdown(null); }}>
                     <Pencil className="w-3.5 h-3.5 mr-2 opacity-70" /> Rename
                  </button>
@@ -399,21 +417,24 @@ export function App() {
         onDrop={(e) => { e.stopPropagation(); handleDrop(e, group.id); }}
         onDragOver={handleDragOver}
       >
-        <div className="relative aspect-[3/2] w-full bg-[#1c1c24] border border-[#2a2a35] hover:border-blue-500/50 rounded-xl overflow-hidden shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all mb-2 flex flex-col items-center justify-center">
-           <Folder className="w-10 h-10 text-gray-500 group-hover:text-blue-400 group-hover:scale-110 transition-all duration-500" />
+        <div className="relative aspect-[3/2] w-full bg-[#1c1c24] border border-[#2a2a35] hover:border-blue-500/50 rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all mb-2 flex flex-col items-center justify-center">
+           <div className="absolute inset-0 overflow-hidden rounded-xl flex items-center justify-center pointer-events-none">
+             <Folder className="w-10 h-10 text-gray-500 group-hover:text-blue-400 group-hover:scale-110 transition-all duration-500" />
+           </div>
+           
            <span className="absolute bottom-2 right-2 bg-black/60 text-[10px] px-2 py-0.5 rounded-full text-gray-300">{groupProjects.length} Items</span>
            
            {/* Dropdown Menu */}
-           <div className="absolute top-2 right-2 z-10" onClick={(e) => e.stopPropagation()}>
+           <div className="absolute top-2 right-2 z-[60]" onClick={(e) => e.stopPropagation()}>
              <button 
-                className="w-7 h-7 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all text-white backdrop-blur-sm"
+                className="w-8 h-8 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center transition-all text-white backdrop-blur-sm ring-1 ring-white/10 opacity-70 hover:opacity-100 shadow-xl"
                 onClick={(e) => { e.stopPropagation(); setActiveDropdown(activeDropdown === group.id ? null : group.id); }}
               >
-                <MoreVertical className="w-3.5 h-3.5" />
+                <MoreVertical className="w-4 h-4" />
               </button>
               
               {activeDropdown === group.id && (
-                 <div className="absolute top-8 right-0 bg-[#22222d] border border-[#3a3a45] rounded-lg shadow-2xl overflow-hidden z-20 w-32 flex flex-col animate-in fade-in zoom-in-95 duration-100">
+                 <div className="absolute top-10 right-0 bg-[#22222d] border border-[#3a3a45] rounded-lg shadow-2xl overflow-hidden z-[70] w-36 flex flex-col animate-in fade-in zoom-in-95 duration-100 ring-1 ring-black/50">
                    <button className="flex items-center px-3 py-2.5 hover:bg-[#30303d] text-xs text-gray-200 transition-colors" onClick={(e) => { e.stopPropagation(); setRenameModal({isOpen: true, id: group.id, name: group.name, type: 'group'}); setActiveDropdown(null); }}>
                       <Pencil className="w-3.5 h-3.5 mr-2 opacity-70" /> Rename
                    </button>
@@ -457,13 +478,16 @@ export function App() {
           </p>
         </div>
         
+        {/* Navigation & Controls */}
         <div className="absolute top-6 right-6 z-10 flex items-center gap-2">
-           <label className="cursor-pointer text-white hover:bg-white/10 rounded-full w-10 h-10 flex items-center justify-center transition-colors">
-             <input type="file" accept=".zip" className="hidden" onChange={handleImportZip} />
-             <Upload className="w-6 h-6" />
-           </label>
-           <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full" onClick={() => setIsSettingsOpen(true)}>
-             <Settings className="w-6 h-6" />
+           <Button variant="ghost" size="icon" className="w-10 h-10 text-white hover:bg-white/10 rounded-full relative" asChild>
+             <label className="cursor-pointer">
+               <input type="file" accept=".zip" className="hidden" onChange={handleImportZip} />
+               <Upload className="w-5 h-5" />
+             </label>
+           </Button>
+           <Button variant="ghost" size="icon" className="w-10 h-10 text-white hover:bg-white/10 rounded-full" onClick={() => setIsSettingsOpen(true)}>
+             <Settings className="w-5 h-5" />
            </Button>
         </div>
       </div>
@@ -646,18 +670,14 @@ export function App() {
         </DrawerContent>
       </Drawer>
 
-      {/* Drawer for Group */}
-      <Drawer open={isGroupDrawerOpen} onOpenChange={setIsGroupDrawerOpen}>
-        <DrawerContent 
-          className="rounded-3xl border border-white/10 bg-[#15151a]/95 backdrop-blur-2xl shadow-2xl text-white after:hidden w-[calc(100%-8px)] sm:max-w-md mx-auto mb-1 !h-[calc(100dvh-8px)] !max-h-[calc(100dvh-8px)] lg:!h-auto lg:!max-h-[90vh] flex flex-col"
-          style={{ '--drawer-content-max-height': 'calc(100dvh - 8px)' } as React.CSSProperties}
-        >
-          <div className="mx-auto w-full flex-1 overflow-hidden flex flex-col min-h-0">
-            <DrawerHeader className="shrink-0">
-              <DrawerTitle>New Group</DrawerTitle>
-            </DrawerHeader>
-
-            <div className="p-5 overflow-y-auto space-y-3 flex-1 min-h-0">
+      {/* Group Modal */}
+      {isGroupDrawerOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in" onClick={() => setIsGroupDrawerOpen(false)}>
+          <div className="bg-[#15151a] border border-[#333] rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl ring-1 ring-white/10" onClick={e => e.stopPropagation()}>
+            <div className="p-4 border-b border-[#333]">
+              <h3 className="text-lg font-bold text-white">New Group</h3>
+            </div>
+            <div className="p-4 space-y-4">
               <div className="space-y-1">
                 <label className="text-xs font-medium text-gray-400">Group Name</label>
                 <input 
@@ -666,21 +686,17 @@ export function App() {
                   placeholder="e.g. Hero Characters"
                   value={newGroupName}
                   onChange={e => setNewGroupName(e.target.value)}
+                  autoFocus
                 />
               </div>
             </div>
-
-            <DrawerFooter className="p-5 pt-2 shrink-0">
-              <Button 
-                className="w-full h-10 text-sm font-bold rounded-full text-white transition-all bg-zinc-700 hover:bg-zinc-600"
-                onClick={handleCreateGroup}
-              >
-                Create Group
-              </Button>
-            </DrawerFooter>
+            <div className="p-4 flex items-center justify-end gap-2 border-t border-[#333] bg-black/20">
+              <Button variant="ghost" onClick={() => setIsGroupDrawerOpen(false)} className="text-gray-400 hover:text-white rounded-lg">Cancel</Button>
+              <Button onClick={handleCreateGroup} className="bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg px-6">Create</Button>
+            </div>
           </div>
-        </DrawerContent>
-      </Drawer>
+        </div>
+      )}
 
       {/* Custom Rename Modal */}
       {renameModal?.isOpen && (
