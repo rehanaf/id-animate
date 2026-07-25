@@ -4,6 +4,7 @@ import { Settings, Plus, Video, Bone, FolderPlus, Folder, FolderOpen, ArrowLeft,
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from "@/components/ui/drawer"
 import JSZip from "jszip"
 import { AppStorage } from "@/core/Storage"
+import { App as CapacitorApp } from '@capacitor/app'
 
 import { EditorProvider } from "@/context/EditorContext"
 import { EditorPage } from "@/pages/EditorPage"
@@ -180,6 +181,40 @@ export function App() {
     };
     loadStorage();
   }, [])
+
+  // Android Back Button Handler
+  useEffect(() => {
+    let listener: any = null;
+    const setupBackButton = async () => {
+      listener = await CapacitorApp.addListener('backButton', ({ canGoBack }) => {
+        if (view === "editor") {
+          setView("menu");
+        } else if (deleteModal) {
+          setDeleteModal(null);
+        } else if (renameModal) {
+          setRenameModal(null);
+        } else if (isSettingsOpen) {
+          setIsSettingsOpen(false);
+        } else if (isGroupDrawerOpen) {
+          setIsGroupDrawerOpen(false);
+        } else if (isDrawerOpen) {
+          setIsDrawerOpen(false);
+        } else if (activeGroupId) {
+          setActiveGroupId(null);
+        } else {
+          // If at root menu with no modals, close app
+          CapacitorApp.exitApp();
+        }
+      });
+    };
+    setupBackButton();
+
+    return () => {
+      if (listener) {
+        listener.remove();
+      }
+    };
+  }, [view, deleteModal, renameModal, isSettingsOpen, isGroupDrawerOpen, isDrawerOpen, activeGroupId]);
 
   // Reset active group when switching tabs
   useEffect(() => {
