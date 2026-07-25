@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Settings, Plus, Video, Bone, FolderPlus, Folder, FolderOpen, ArrowLeft, MoreVertical, Copy, Pencil, Trash2 } from "lucide-react"
+import { Settings, Plus, Video, Bone, FolderPlus, Folder, FolderOpen, ArrowLeft, MoreVertical, Copy, Pencil, Trash2, Upload } from "lucide-react"
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from "@/components/ui/drawer"
+import JSZip from "jszip"
 
 import { EditorProvider } from "@/context/EditorContext"
 import { EditorPage } from "@/pages/EditorPage"
@@ -47,6 +48,89 @@ export function App() {
   // Drawer states (for group)
   const [isGroupDrawerOpen, setIsGroupDrawerOpen] = useState(false)
   const [newGroupName, setNewGroupName] = useState("")
+
+  const handleImportZip = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      try {
+        const zip = await JSZip.loadAsync(ev.target?.result as ArrayBuffer);
+        
+        const skeletonFile = zip.file("skeleton.json");
+        if (!skeletonFile) {
+           alert("Invalid project file (missing skeleton.json)");
+           return;
+        }
+
+        const skeletonStr = await skeletonFile.async("string");
+        const skeletonData = JSON.parse(skeletonStr);
+
+        const animFile = zip.file("animation.json");
+        let animData = null;
+        if (animFile) {
+           animData = JSON.parse(await animFile.async("string"));
+        }
+
+        // Restore images
+        const imagesFolder = zip.folder("images");
+        if (imagesFolder) {
+           const restoreImages = async (bone: any) => {
+              if (bone.assetType === "image" && bone.assetUrl) {
+                 const filename = bone.assetUrl.split('/').pop();
+                 const imgFile = imagesFolder.file(filename);
+                 if (imgFile) {
+                    const base64 = await imgFile.async("base64");
+                    const ext = filename.split('.').pop() || "png";
+                    const mime = ext === "jpg" ? "image/jpeg" : "image/png";
+                    bone.assetData = `data:${mime};base64,${base64}`;
+                 }
+              }
+              if (bone.children) {
+                 for (const child of bone.children) {
+                    await restoreImages(child);
+                 }
+              }
+           };
+
+           if (skeletonData.bones) {
+              await restoreImages(skeletonData.bones);
+           }
+        }
+
+        // Replace global workspace
+        localStorage.setItem("rig_workspace", JSON.stringify(skeletonData));
+        if (animData) {
+           localStorage.setItem("anim_workspace", JSON.stringify(animData));
+        }
+
+        const newId = Date.now().toString();
+        const p: Project = {
+          id: newId,
+          name: file.name.replace(".zip", ""),
+          type: "animation",
+          canvasWidth: 800,
+          canvasHeight: 600,
+          fps: 8,
+          lastModified: Date.now(),
+          data: null
+        };
+
+        const newProjects = [p, ...projects];
+        saveProjects(newProjects);
+        
+        // Open the editor!
+        setView("editor");
+
+      } catch (err) {
+        console.error(err);
+        alert("Failed to import project");
+      }
+    };
+    reader.readAsArrayBuffer(file);
+    e.target.value = "";
+  };
 
   // Custom Modal States
   const [renameModal, setRenameModal] = useState<{isOpen: boolean, id: string, name: string, type: 'project'|'group'} | null>(null)
@@ -330,7 +414,11 @@ export function App() {
           </p>
         </div>
         
-        <div className="absolute top-6 right-6 z-10">
+        <div className="absolute top-6 right-6 z-10 flex items-center gap-2">
+           <label className="cursor-pointer text-white hover:bg-white/10 rounded-full w-10 h-10 flex items-center justify-center transition-colors">
+             <input type="file" accept=".zip" className="hidden" onChange={handleImportZip} />
+             <Upload className="w-6 h-6" />
+           </label>
            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full" onClick={() => setIsSettingsOpen(true)}>
              <Settings className="w-6 h-6" />
            </Button>
