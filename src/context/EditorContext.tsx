@@ -1,0 +1,222 @@
+import React, { createContext, useContext, useState } from "react";
+import { Skeleton } from "@/core/Skeleton.js";
+import { Animation } from "@/core/Animation.js";
+import { Bone } from "@/core/Bone.js";
+
+interface EditorContextType {
+  skeleton: Skeleton | null;
+  setSkeleton: (s: Skeleton | null) => void;
+  selectedBoneId: string | null;
+  setSelectedBoneId: (id: string | null) => void;
+  activeTool: string;
+  setActiveTool: (tool: string) => void;
+  selectMode: "move" | "rotate" | "scale";
+  setSelectMode: (mode: "move" | "rotate" | "scale") => void;
+  activeShape: "square" | "circle" | "triangle";
+  setActiveShape: (shape: "square" | "circle" | "triangle") => void;
+  editorMode: "rig" | "animate" | "path";
+  setEditorMode: (mode: "rig" | "animate" | "path") => void;
+  isPlaying: boolean;
+  setIsPlaying: (playing: boolean) => void;
+  currentAnimation: Animation | null;
+  setCurrentAnimation: (anim: Animation | null) => void;
+  currentTime: number;
+  setCurrentTime: (time: number) => void;
+  fps: number;
+  setFps: (fps: number) => void;
+  duration: number;
+  setDuration: (duration: number) => void;
+  onionPrev: boolean;
+  setOnionPrev: (enabled: boolean) => void;
+  onionNext: boolean;
+  setOnionNext: (enabled: boolean) => void;
+  canvasWidth: number;
+  setCanvasWidth: (w: number) => void;
+  canvasHeight: number;
+  setCanvasHeight: (h: number) => void;
+  revision: number;
+  forceUpdate: () => void;
+  pushHistory: () => void;
+  undo: () => void;
+  redo: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
+}
+
+const EditorContext = createContext<EditorContextType | undefined>(undefined);
+
+export function EditorProvider({ children }: { children: React.ReactNode }) {
+  const [skeleton, setSkeleton] = useState<Skeleton | null>(null);
+  const [selectedBoneId, setSelectedBoneId] = useState<string | null>(null);
+  const [activeTool, setActiveTool] = useState<string>("select");
+  const [selectMode, setSelectMode] = useState<"move" | "rotate" | "scale">("rotate");
+  const [activeShape, setActiveShape] = useState<"square" | "circle" | "triangle">("square");
+  const [editorMode, setEditorMode] = useState<"rig" | "animate" | "path">("rig");
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentAnimation, setCurrentAnimation] = useState<Animation | null>(null);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [fps, setFps] = useState(8);
+  const [duration, setDuration] = useState(0); // default 0 seconds (only frame 0)
+  const [onionPrev, setOnionPrev] = useState(true);
+  const [onionNext, setOnionNext] = useState(false);
+  const [canvasWidth, setCanvasWidth] = useState(800);
+  const [canvasHeight, setCanvasHeight] = useState(600);
+  const [revision, setRevision] = useState(0);
+
+  // Undo / Redo History State
+  const [history, setHistory] = useState<string[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+
+  React.useEffect(() => {
+    if (!skeleton) {
+      const defaultSkel = new Skeleton();
+      defaultSkel.root.localTransform.x = 0;
+      defaultSkel.root.localTransform.y = 0;
+      
+      let finalSkel = defaultSkel;
+      let finalAnim: any = null;
+      try {
+        const savedRig = localStorage.getItem("rig_workspace");
+        let parsed = null;
+        if (savedRig) parsed = Skeleton.fromJSON(savedRig);
+        
+        if (parsed && parsed.root.children.length > 0) {
+          finalSkel = parsed;
+          const savedAnim = localStorage.getItem("anim_workspace");
+          if (savedAnim) finalAnim = Animation.fromJSON(savedAnim);
+        } else {
+          // BUILD DEFAULT STICKMAN
+          finalSkel.name = "Stickman";
+          const hips = new Bone("Hips"); hips.assetType = "shape"; hips.shapeType = "circle"; hips.assetWidth = 30; hips.assetHeight = 30; hips.localTransform.y = -50;
+          const torso = new Bone("Torso"); torso.assetType = "shape"; torso.shapeType = "rect"; torso.assetWidth = 30; torso.assetHeight = 80; torso.localTransform.y = -60;
+          const head = new Bone("Head"); head.assetType = "shape"; head.shapeType = "circle"; head.assetWidth = 40; head.assetHeight = 40; head.localTransform.y = -60;
+          const upperArmL = new Bone("UpperArm_L"); upperArmL.assetType = "shape"; upperArmL.shapeType = "rect"; upperArmL.assetWidth = 20; upperArmL.assetHeight = 60; upperArmL.localTransform.x = -25; upperArmL.localTransform.y = -40; upperArmL.localTransform.rotation = 45;
+          const lowerArmL = new Bone("LowerArm_L"); lowerArmL.assetType = "shape"; lowerArmL.shapeType = "rect"; lowerArmL.assetWidth = 15; lowerArmL.assetHeight = 50; lowerArmL.localTransform.y = -50;
+          const upperArmR = new Bone("UpperArm_R"); upperArmR.assetType = "shape"; upperArmR.shapeType = "rect"; upperArmR.assetWidth = 20; upperArmR.assetHeight = 60; upperArmR.localTransform.x = 25; upperArmR.localTransform.y = -40; upperArmR.localTransform.rotation = -45;
+          const lowerArmR = new Bone("LowerArm_R"); lowerArmR.assetType = "shape"; lowerArmR.shapeType = "rect"; lowerArmR.assetWidth = 15; lowerArmR.assetHeight = 50; lowerArmR.localTransform.y = -50;
+          const thighL = new Bone("Thigh_L"); thighL.assetType = "shape"; thighL.shapeType = "rect"; thighL.assetWidth = 20; thighL.assetHeight = 70; thighL.localTransform.x = -15; thighL.localTransform.rotation = 15;
+          const calfL = new Bone("Calf_L"); calfL.assetType = "shape"; calfL.shapeType = "rect"; calfL.assetWidth = 15; calfL.assetHeight = 60; calfL.localTransform.y = -60;
+          const thighR = new Bone("Thigh_R"); thighR.assetType = "shape"; thighR.shapeType = "rect"; thighR.assetWidth = 20; thighR.assetHeight = 70; thighR.localTransform.x = 15; thighR.localTransform.rotation = -15;
+          const calfR = new Bone("Calf_R"); calfR.assetType = "shape"; calfR.shapeType = "rect"; calfR.assetWidth = 15; calfR.assetHeight = 60; calfR.localTransform.y = -60;
+          
+          finalSkel.root.addChild(hips);
+          hips.addChild(torso); torso.addChild(head);
+          torso.addChild(upperArmL); upperArmL.addChild(lowerArmL);
+          torso.addChild(upperArmR); upperArmR.addChild(lowerArmR);
+          hips.addChild(thighL); thighL.addChild(calfL);
+          hips.addChild(thighR); thighR.addChild(calfR);
+          finalSkel.root.saveSetupPose();
+          finalSkel.root.updateWorldTransform();
+          
+          // BUILD DEFAULT WALK ANIMATION
+          finalAnim = new Animation("Walk", 1.0);
+          const kf = (time: number, bone: string, rot: number) => finalAnim.setBonePose(time, bone, "rotation", rot, 0);
+          kf(0, "Thigh_L", 30); kf(0, "Calf_L", -20); kf(0, "Thigh_R", -30); kf(0, "Calf_R", -10); kf(0, "UpperArm_L", -30); kf(0, "UpperArm_R", 30);
+          kf(0.5, "Thigh_L", -30); kf(0.5, "Calf_L", -10); kf(0.5, "Thigh_R", 30); kf(0.5, "Calf_R", -20); kf(0.5, "UpperArm_L", 30); kf(0.5, "UpperArm_R", -30);
+          kf(1.0, "Thigh_L", 30); kf(1.0, "Calf_L", -20); kf(1.0, "Thigh_R", -30); kf(1.0, "Calf_R", -10); kf(1.0, "UpperArm_L", -30); kf(1.0, "UpperArm_R", 30);
+        }
+      } catch (e) {
+        console.error("Failed to load rig_workspace:", e);
+      }
+
+      setSkeleton(finalSkel);
+      if (finalAnim) setCurrentAnimation(finalAnim);
+    }
+  }, [skeleton, canvasWidth, canvasHeight]);
+
+  React.useEffect(() => {
+    if (skeleton) localStorage.setItem("rig_workspace", skeleton.exportToJSON());
+    if (currentAnimation) localStorage.setItem("anim_workspace", currentAnimation.exportToJSON());
+  }, [revision, skeleton, currentAnimation]);
+
+  const forceUpdate = () => setRevision(r => r + 1);
+
+  const pushHistory = () => {
+    if (!skeleton) return;
+    const jsonStr = skeleton.exportToJSON();
+    
+    // Only push if different from current
+    if (historyIndex >= 0 && historyIndex < history.length) {
+      if (history[historyIndex] === jsonStr) return;
+    }
+
+    const newHistory = history.slice(0, historyIndex + 1);
+    newHistory.push(jsonStr);
+    
+    // Limit history to 50 states to prevent memory issues
+    if (newHistory.length > 50) newHistory.shift();
+    
+    setHistory(newHistory);
+    setHistoryIndex(newHistory.length - 1);
+  };
+
+  const undo = () => {
+    if (historyIndex > 0) {
+      const newIndex = historyIndex - 1;
+      setHistoryIndex(newIndex);
+      const restored = Skeleton.fromJSON(history[newIndex]);
+      setSkeleton(restored);
+      forceUpdate();
+    }
+  };
+
+  const redo = () => {
+    if (historyIndex < history.length - 1) {
+      const newIndex = historyIndex + 1;
+      setHistoryIndex(newIndex);
+      const restored = Skeleton.fromJSON(history[newIndex]);
+      setSkeleton(restored);
+      forceUpdate();
+    }
+  };
+
+  // Push initial state once when skeleton is first created
+  React.useEffect(() => {
+    if (skeleton && history.length === 0) {
+      pushHistory();
+    }
+  }, [skeleton]);
+
+  // Auto-keyframe wrapper could be placed here or used contextually
+  React.useEffect(() => {
+    if (!currentAnimation && skeleton) {
+      setCurrentAnimation(new Animation("Clip 1", 0))
+    }
+  }, [currentAnimation, skeleton])
+
+  return (
+    <EditorContext.Provider value={{
+      skeleton, setSkeleton,
+      selectedBoneId, setSelectedBoneId,
+      activeTool,
+      setActiveTool,
+      selectMode,
+      setSelectMode,
+      activeShape, setActiveShape,
+      editorMode, setEditorMode,
+      isPlaying, setIsPlaying,
+      currentAnimation, setCurrentAnimation,
+      currentTime, setCurrentTime,
+      fps, setFps,
+      duration, setDuration,
+      onionPrev, setOnionPrev,
+      onionNext, setOnionNext,
+      canvasWidth, setCanvasWidth,
+      canvasHeight, setCanvasHeight,
+      revision, forceUpdate,
+      pushHistory, undo, redo,
+      canUndo: historyIndex > 0,
+      canRedo: historyIndex < history.length - 1
+    }}>
+      {children}
+    </EditorContext.Provider>
+  );
+}
+
+export function useEditor() {
+  const context = useContext(EditorContext);
+  if (context === undefined) {
+    throw new Error("useEditor must be used within an EditorProvider");
+  }
+  return context;
+}
