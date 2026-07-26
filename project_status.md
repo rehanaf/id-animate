@@ -30,6 +30,22 @@ Berikut adalah daftar fitur utama, fondasi yang sudah kita bangun, serta hal-hal
 - [ ] **Easing & Kurva Interpolasi:** Mengganti gaya perpindahan dari kaku (linear) menjadi luwes (Bouncing, Ease In-Out).
 - [ ] **Sprite Sheet / Flipbook Engine:** Kemampuan untuk mengganti-ganti gambar mata/mulut dalam satu *Bone* berdasar *frame*.
 - [ ] **Export to GIF/MP4:** Menyatukan (*render*) hasil *artboard* menjadi berkas video.
+- [ ] **Text Element:** Menambahkan elemen teks yang bisa di-*rigging* dan dianimasikan (font, ukuran, warna, dll).
+- [ ] **Minecraft Rig & Import Skin:** Rig bawaan model Minecraft dengan kemampuan mengimpor file skin (.png) langsung ke karakter.
+- [ ] **Sound/Music in Frame:** Menambahkan audio (SFX/musik) pada frame tertentu di timeline animasi.
+- [ ] **Login with Google:** Autentikasi pengguna menggunakan akun Google.
+- [ ] **Subscription & Ads Reward:** Sistem langganan premium dan reward dari menonton iklan untuk membuka fitur.
+
+## 📦 Predefined Animation & Skeleton Library
+- [ ] **Animation: Demo/Walk** — Animasi berjalan siap pakai.
+- [ ] **Skeleton: Basic/Minecraft** — Kerangka dasar model Minecraft.
+- [ ] **Skeleton: Basic/Stickman** — Kerangka stickman sederhana.
+- [ ] **Skeleton: Weapon/Sword** — Kerangka pedang.
+- [ ] **Skeleton: Weapon/Bow** — Kerangka busur panah.
+
+## 🔧 Perbaikan / Revisi
+- [ ] **Path Tool warna seperti Shape tanpa stroke:** Path yang digambar menggunakan Pen Tool seharusnya memiliki fill color seperti Shape, bukan hanya stroke.
+- [ ] **FAB Main Menu z-index:** Tombol FAB (Floating Action Button) di Main Menu tertutup elemen lain, perlu diperbaiki z-index-nya.
 
 ---
 *Catatan: Centang akan bertambah seiring berjalannya sesi koding kita!*
