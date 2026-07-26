@@ -7,34 +7,29 @@ const CustomColorPicker = ({ color, onChange, disabled }: any) => {
   const [open, setOpen] = React.useState(false);
   const ref = React.useRef<HTMLDivElement>(null);
 
-  React.useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (ref.current && !ref.current.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    };
-    if (open) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [open]);
-
   return (
-    <div className="relative" ref={ref}>
+    <>
       <div 
         className={`w-full h-8 rounded-lg cursor-pointer border border-white/10 checkerboard-bg ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-        onClick={() => !disabled && setOpen(!open)}
+        onClick={() => !disabled && setOpen(true)}
       >
         <div className="w-full h-full rounded-lg" style={{ background: color || '#d1d5db' }} />
       </div>
       {open && (
-        <div className="absolute right-0 top-10 z-[100] bg-[#1a1a24] p-3 rounded-xl shadow-2xl border border-white/10 w-[300px]">
-          <ColorPicker value={color || '#d1d5db'} onChange={onChange} />
+        <div className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-auto">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setOpen(false)} />
+          <div className="relative z-[101] bg-[#1a1a24] p-4 rounded-xl shadow-2xl border border-white/10 w-full max-w-[340px] max-h-[100vh] overflow-y-auto flex flex-col">
+            <div className="flex justify-between items-center mb-4">
+               <span className="text-white text-sm font-bold uppercase tracking-wider text-gray-400">Color Picker</span>
+               <button className="text-gray-400 hover:text-white bg-white/10 hover:bg-white/20 w-8 h-8 rounded-full flex items-center justify-center transition-colors" onClick={() => setOpen(false)}>✕</button>
+            </div>
+            <div className="flex-1 overflow-hidden" style={{ minHeight: '320px' }}>
+              <ColorPicker value={color || '#d1d5db'} onChange={onChange} width={300} />
+            </div>
+          </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
 

@@ -611,16 +611,16 @@ export function App() {
     >
       
       {/* Hero Section */}
-      <div className="relative pt-24 pb-16 px-6 lg:px-12 flex flex-col items-center justify-center shrink-0 snap-start">
+      <div className="relative pt-12 pb-8 landscape:pt-6 landscape:pb-4 px-6 lg:px-12 flex flex-col items-center justify-center shrink-0 snap-start">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900/15 via-[#0a0a0f] to-[#0a0a0f] pointer-events-none"></div>
         <div className="z-10 text-center flex flex-col items-center">
-          <div className="w-20 h-20 mb-6 rounded-3xl bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center font-black text-4xl shadow-2xl shadow-blue-500/30 ring-1 ring-white/10">
+          <div className="w-20 h-20 mb-6 landscape:w-12 landscape:h-12 landscape:mb-2 rounded-3xl landscape:rounded-xl bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center font-black text-4xl landscape:text-xl shadow-2xl shadow-blue-500/30 ring-1 ring-white/10">
             iA
           </div>
-          <h1 className="text-5xl md:text-7xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 mb-4">
+          <h1 className="text-5xl md:text-7xl landscape:text-3xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 mb-4 landscape:mb-1">
             I'd Animate
           </h1>
-          <p className="text-gray-400 text-lg md:text-xl max-w-xl mx-auto font-medium">
+          <p className="text-gray-400 text-lg md:text-xl landscape:text-xs max-w-xl mx-auto font-medium">
             Next-Generation 2D Rigging & Animation Workspace
           </p>
         </div>
