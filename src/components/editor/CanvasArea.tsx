@@ -220,7 +220,7 @@ export function CanvasArea() {
       lastTime = now
 
       // Animation Logic
-      if (currentAnimationRef.current) {
+      if (currentAnimationRef.current && editorModeRef.current === "animate") {
         animator.currentAnimation = currentAnimationRef.current
         
         if (isPlayingRef.current) {
@@ -240,6 +240,10 @@ export function CanvasArea() {
           if (!dragState.current.isDragging) {
             animator.applyPose(currentTimeRef.current)
           }
+        }
+      } else if (editorModeRef.current === "rig") {
+        if (!dragState.current.isDragging) {
+          currentSkel.root.restoreSetupPose()
         }
       }
 
