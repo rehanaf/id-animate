@@ -53,12 +53,12 @@ export function EditorPage({ onBack }: { onBack: () => void }) {
       {/* Back Button */}
       <div className="absolute top-1 left-1 z-[100]" style={{ touchAction: 'auto' }}>
         <button 
-          onClick={onBack} 
+          onPointerDown={(e) => { e.stopPropagation(); e.preventDefault(); onBack(); }} 
           className="w-10 h-10 rounded-full bg-[#15151a]/80 backdrop-blur-xl border border-white/10 text-gray-300 hover:bg-white/10 hover:text-white transition-all shadow-2xl flex items-center justify-center pointer-events-auto cursor-pointer" 
           title="Back to Menu"
           style={{ touchAction: 'auto' }}
         >
-          <ArrowLeft className="w-5 h-5 pointer-events-none" />
+          <ArrowLeft className="w-4 h-4 pointer-events-none" />
         </button>
       </div>
 
