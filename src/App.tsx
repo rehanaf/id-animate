@@ -730,7 +730,7 @@ export function App() {
 
       {/* Floating Action Button */}
       <button 
-        className={`fixed bottom-8 right-8 w-16 h-16 text-white rounded-full flex items-center justify-center shadow-xl transition-all hover:scale-105 active:scale-95 z-40 ${
+        className={`fixed bottom-8 right-8 w-16 h-16 text-white rounded-full flex items-center justify-center shadow-xl transition-all hover:scale-105 active:scale-95 z-[100] ${
            activeTab === "animation" ? "bg-blue-600 hover:bg-blue-500 shadow-blue-600/40" :
            "bg-purple-600 hover:bg-purple-500 shadow-purple-600/40"
         }`}

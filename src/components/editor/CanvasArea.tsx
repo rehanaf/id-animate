@@ -897,8 +897,8 @@ export function CanvasArea() {
     bone.assetType = 'path'
     bone.shapeType = 'path'
     bone.shapeClosed = closed
-    bone.shapeColor = 'rgba(59, 130, 246, 0.5)'
-    bone.pathThickness = 3
+    bone.shapeColor = '#d1d5db'
+    bone.pathThickness = closed ? 0 : 3
     bone.pathIsCurved = true
     bone.pathPoints = penPointsRef.current.map(pt => ({ x: pt.x - cx, y: pt.y - cy, isCurved: pt.isCurved }))
     
