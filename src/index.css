@@ -148,3 +148,28 @@
   background-position: 0 0, 4px 4px;
   background-size: 8px 8px;
 }
+
+/* Custom theme for react-best-gradient-color-picker */
+.custom-theme-picker {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+.custom-theme-picker * {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+.custom-theme-picker input,
+.custom-theme-picker select {
+  background-color: #0a0a0f !important;
+  color: #fff !important;
+}
+.custom-theme-picker .rbgcp-control-btn,
+.custom-theme-picker .rbgcp-control-icon-btn,
+.custom-theme-picker .rbgcp-point-delete-btn {
+  background-color: #2a2a35 !important;
+  color: #fff !important;
+}
+.custom-theme-picker .rbgcp-control-btn:hover,
+.custom-theme-picker .rbgcp-control-icon-btn:hover {
+  background-color: #3a3a45 !important;
+}
