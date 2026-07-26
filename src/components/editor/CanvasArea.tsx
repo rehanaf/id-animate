@@ -503,9 +503,9 @@ export function CanvasArea() {
 
             // Tail helper dot
             if (bone.children.length === 0 && bone.tailWorld && activeToolRef.current === "select") {
-              ctx.fillStyle = "#0ea5e9"
+              ctx.fillStyle = isSelected ? "#facc15" : "#0ea5e9"
               ctx.beginPath()
-              ctx.arc(bone.tailWorld.x, bone.tailWorld.y, 4 / z, 0, Math.PI * 2)
+              ctx.arc(bone.tailWorld.x, bone.tailWorld.y, (isSelected ? 6 : 4) / z, 0, Math.PI * 2)
               ctx.lineWidth = 1.5 / z
               ctx.strokeStyle = "#ffffff"
               ctx.stroke()
