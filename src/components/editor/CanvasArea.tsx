@@ -488,12 +488,16 @@ export function CanvasArea() {
             if (bone.name === 'root') return;
             const isSelected = bone.id === selectedBoneIdRef.current
 
+            const isDraggingThis = dragState.current.isDragging && dragState.current.bone && dragState.current.bone.id === bone.id
+            const isDraggingTail = isDraggingThis && dragState.current.isTail
+
             // Joint Circle
+            const highlightJoint = isSelected && !isDraggingTail
             ctx.beginPath()
-            ctx.arc(bone.worldTransform.x, bone.worldTransform.y, (isSelected ? 6 : 4) / z, 0, Math.PI * 2)
+            ctx.arc(bone.worldTransform.x, bone.worldTransform.y, (highlightJoint ? 6 : 4) / z, 0, Math.PI * 2)
 
             const isRootChild = bone.parent && bone.parent.name === 'root'
-            ctx.fillStyle = isSelected ? "#facc15" : (isRootChild ? "#f97316" : "#0ea5e9") 
+            ctx.fillStyle = highlightJoint ? "#facc15" : (isRootChild ? "#f97316" : "#0ea5e9") 
 
             // White border outline
             ctx.lineWidth = 1.5 / z
@@ -503,9 +507,10 @@ export function CanvasArea() {
 
             // Tail helper dot
             if (bone.children.length === 0 && bone.tailWorld && activeToolRef.current === "select") {
-              ctx.fillStyle = isSelected ? "#facc15" : "#0ea5e9"
+              const highlightTail = isDraggingTail
+              ctx.fillStyle = highlightTail ? "#facc15" : "#0ea5e9"
               ctx.beginPath()
-              ctx.arc(bone.tailWorld.x, bone.tailWorld.y, (isSelected ? 6 : 4) / z, 0, Math.PI * 2)
+              ctx.arc(bone.tailWorld.x, bone.tailWorld.y, (highlightTail ? 6 : 4) / z, 0, Math.PI * 2)
               ctx.lineWidth = 1.5 / z
               ctx.strokeStyle = "#ffffff"
               ctx.stroke()
