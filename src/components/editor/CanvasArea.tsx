@@ -189,7 +189,7 @@ export function CanvasArea() {
       
       cameraRef.current = {
         x: 0,
-        y: rect.height < 500 ? -20 : -50, // offset vertically to center relative to cy (rect.height/2 + 100)
+        y: rect.height < 500 ? -50 : -100, // offset vertically to center above the timeline
         zoom: Number(finalZoom.toFixed(2))
       }
     }
