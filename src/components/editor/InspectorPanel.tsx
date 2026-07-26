@@ -255,11 +255,96 @@ export function InspectorPanel() {
           </select>
         </div>
 
+        {selectedBone.assetType === "image" && (
+          <div className="flex flex-col gap-1 pt-2 border-t border-white/5">
+            <label 
+              className="w-full text-center bg-white/10 hover:bg-white/20 text-white text-xs font-bold py-2 rounded-lg cursor-pointer transition-colors border border-white/5"
+            >
+              Replace Image
+              <input 
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (!file) return
+                  const reader = new FileReader()
+                  reader.onload = (event) => {
+                    const dataUrl = event.target?.result as string
+                    const img = new Image()
+                    img.onload = () => {
+                      handleBonePropertyChange("assetData", dataUrl)
+                      selectedBone.imageObj = img // Update rendering directly
+                    }
+                    img.src = dataUrl
+                  }
+                  reader.readAsDataURL(file)
+                  e.target.value = '' 
+                }}
+              />
+            </label>
+          </div>
+        )}
+        
+        {selectedBone.assetType === "shape" && (
+          <div className="flex flex-col gap-3 pt-2 border-t border-white/5">
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] text-gray-500 font-bold uppercase">Shape Type</label>
+              <select
+                value={selectedBone.shapeType || "square"}
+                onChange={(e) => handleBonePropertyChange("shapeType", e.target.value)}
+                className="w-full bg-black/40 border border-white/10 rounded-lg px-2 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500"
+                disabled={isAnimateMode}
+              >
+                <option value="square">Square</option>
+                <option value="circle">Circle</option>
+                <option value="triangle">Triangle</option>
+              </select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] text-gray-500 font-bold uppercase">Shape Color</label>
+              <input
+                type="color"
+                value={selectedBone.shapeColor || "#3b82f6"}
+                onChange={(e) => handleBonePropertyChange("shapeColor", e.target.value)}
+                className="w-full h-8 bg-black/40 border border-white/10 rounded-lg cursor-pointer"
+                disabled={isAnimateMode}
+              />
+            </div>
+          </div>
+        )}
+        
+        {selectedBone.assetType === "path" && (
+          <div className="flex flex-col gap-3 pt-2 border-t border-white/5">
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] text-gray-500 font-bold uppercase">Color / Stroke Color</label>
+              <input
+                type="color"
+                value={selectedBone.shapeColor || "#3b82f6"}
+                onChange={(e) => handleBonePropertyChange("shapeColor", e.target.value)}
+                className="w-full h-8 bg-black/40 border border-white/10 rounded-lg cursor-pointer"
+                disabled={isAnimateMode}
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] text-gray-500 font-bold uppercase">Stroke Thickness</label>
+              <input
+                type="number"
+                step="1"
+                min="0"
+                value={selectedBone.pathThickness !== undefined ? selectedBone.pathThickness : 3}
+                onChange={(e) => handleBonePropertyChange("pathThickness", parseFloat(e.target.value) || 0)}
+                className="w-full bg-black/40 border border-white/10 rounded-lg px-2 py-1.5 text-sm text-white font-mono focus:outline-none focus:border-blue-500"
+                disabled={isAnimateMode}
+              />
+            </div>
+          </div>
+        )}
       </AccordionItem>
 
       {selectedBone.assetType && (
         <AccordionItem title="Asset Transform">
-          <div className="grid grid-cols-2 gap-3 mb-2">
+          <div className="grid grid-cols-2 gap-3 mb-3">
             <div className="flex flex-col gap-1">
               <label className="text-[10px] text-gray-500 font-bold uppercase">Offset X</label>
               <input 
@@ -289,7 +374,8 @@ export function InspectorPanel() {
               />
             </div>
           </div>
-          <div className="flex flex-col gap-1">
+          
+          <div className="flex flex-col gap-1 mb-3">
             <label className="text-[10px] text-gray-500 font-bold uppercase">Rotation (Deg)</label>
             <input 
               type="number" 
@@ -299,12 +385,8 @@ export function InspectorPanel() {
               className="w-full bg-black/40 border border-white/10 rounded-lg px-2 py-1.5 text-sm text-white font-mono focus:outline-none focus:border-blue-500"
             />
           </div>
-        </AccordionItem>
-      )}
 
-      {selectedBone.assetType && (
-        <AccordionItem title="Asset Dimensions">
-          <div className="flex items-end gap-2">
+          <div className="flex items-end gap-2 pt-2 border-t border-white/5">
             <div className="flex flex-col gap-1 flex-1">
               <div className="flex justify-between items-center">
                 <label className="text-[10px] text-gray-500 font-bold uppercase">Width</label>
@@ -359,92 +441,6 @@ export function InspectorPanel() {
               )}
             </div>
           </div>
-
-          {selectedBone.assetType === "image" && (
-            <div className="flex flex-col gap-1 pt-2">
-              <label 
-                className="w-full text-center bg-white/10 hover:bg-white/20 text-white text-xs font-bold py-2 rounded-lg cursor-pointer transition-colors border border-white/5"
-              >
-                Replace Image
-                <input 
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0]
-                    if (!file) return
-                    const reader = new FileReader()
-                    reader.onload = (event) => {
-                      const dataUrl = event.target?.result as string
-                      const img = new Image()
-                      img.onload = () => {
-                        handleBonePropertyChange("assetData", dataUrl)
-                        selectedBone.imageObj = img // Update rendering directly
-                      }
-                      img.src = dataUrl
-                    }
-                    reader.readAsDataURL(file)
-                    e.target.value = '' 
-                  }}
-                />
-              </label>
-            </div>
-          )}
-          
-          {selectedBone.assetType === "shape" && (
-            <div className="flex flex-col gap-3 pt-2">
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] text-gray-500 font-bold uppercase">Shape Type</label>
-                <select
-                  value={selectedBone.shapeType || "square"}
-                  onChange={(e) => handleBonePropertyChange("shapeType", e.target.value)}
-                  className="w-full bg-black/40 border border-white/10 rounded-lg px-2 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500"
-                  disabled={isAnimateMode}
-                >
-                  <option value="square">Square</option>
-                  <option value="circle">Circle</option>
-                  <option value="triangle">Triangle</option>
-                </select>
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] text-gray-500 font-bold uppercase">Shape Color</label>
-                <input
-                  type="color"
-                  value={selectedBone.shapeColor || "#3b82f6"}
-                  onChange={(e) => handleBonePropertyChange("shapeColor", e.target.value)}
-                  className="w-full h-8 bg-black/40 border border-white/10 rounded-lg cursor-pointer"
-                  disabled={isAnimateMode}
-                />
-              </div>
-            </div>
-          )}
-          
-          {selectedBone.assetType === "path" && (
-            <div className="flex flex-col gap-3 pt-2">
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] text-gray-500 font-bold uppercase">Color / Stroke Color</label>
-                <input
-                  type="color"
-                  value={selectedBone.shapeColor || "#3b82f6"}
-                  onChange={(e) => handleBonePropertyChange("shapeColor", e.target.value)}
-                  className="w-full h-8 bg-black/40 border border-white/10 rounded-lg cursor-pointer"
-                  disabled={isAnimateMode}
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] text-gray-500 font-bold uppercase">Stroke Thickness</label>
-                <input
-                  type="number"
-                  step="1"
-                  min="0"
-                  value={selectedBone.pathThickness !== undefined ? selectedBone.pathThickness : 3}
-                  onChange={(e) => handleBonePropertyChange("pathThickness", parseFloat(e.target.value) || 0)}
-                  className="w-full bg-black/40 border border-white/10 rounded-lg px-2 py-1.5 text-sm text-white font-mono focus:outline-none focus:border-blue-500"
-                  disabled={isAnimateMode}
-                />
-              </div>
-            </div>
-          )}
         </AccordionItem>
       )}
 
