@@ -117,27 +117,29 @@ function BoneTreeItem({ bone, skeleton }: { bone: any, skeleton: any }) {
       }
     }
     
-    if (wasRootChild) {
-       const targetParent = (pos === 'center') ? bone : bone.parent;
-       if (targetParent) {
-          skeleton.root.updateWorldTransform(); // Ensure target parent's world transform is up to date
-          const pWX = targetParent.worldTransform.x;
-          const pWY = targetParent.worldTransform.y;
-          const pWR = targetParent.worldTransform.rotation;
-          
-          const rad = -pWR * Math.PI / 180;
-          const dx = oldWX - pWX;
-          const dy = oldWY - pWY;
-          
-          const lx = (dx * Math.cos(rad) - dy * Math.sin(rad)) / targetParent.worldTransform.scaleX;
-          const ly = (dx * Math.sin(rad) + dy * Math.cos(rad)) / targetParent.worldTransform.scaleY;
-          
-          draggedBone.localTransform.x = lx;
-          draggedBone.localTransform.y = ly;
-          draggedBone.localTransform.rotation = oldWR - pWR;
-          draggedBone.localTransform.scaleX = oldWSX / targetParent.worldTransform.scaleX;
-          draggedBone.localTransform.scaleY = oldWSY / targetParent.worldTransform.scaleY;
-       }
+    // Always recalculate local transform to preserve screen/visual position
+    const targetParent = draggedBone.parent;
+    if (targetParent) {
+       skeleton.root.updateWorldTransform(); // Ensure target parent's world transform is up to date
+       const pWX = targetParent.worldTransform.x;
+       const pWY = targetParent.worldTransform.y;
+       const pWR = targetParent.worldTransform.rotation;
+       
+       const rad = -pWR * Math.PI / 180;
+       const dx = oldWX - pWX;
+       const dy = oldWY - pWY;
+       
+       const lx = (dx * Math.cos(rad) - dy * Math.sin(rad)) / targetParent.worldTransform.scaleX;
+       const ly = (dx * Math.sin(rad) + dy * Math.cos(rad)) / targetParent.worldTransform.scaleY;
+       
+       draggedBone.localTransform.x = lx;
+       draggedBone.localTransform.y = ly;
+       draggedBone.localTransform.rotation = oldWR - pWR;
+       draggedBone.localTransform.scaleX = oldWSX / targetParent.worldTransform.scaleX;
+       draggedBone.localTransform.scaleY = oldWSY / targetParent.worldTransform.scaleY;
+       
+       // Force update setupTransform so changes persist
+       draggedBone.setupTransform = draggedBone.localTransform.clone();
     }
     
     skeleton.root.updateWorldTransform();
@@ -269,6 +271,14 @@ export function HierarchyPanel() {
 
     if (!draggedBone || draggedBone.parent === skeleton.root) return // Already at root
 
+    // Store old world transform
+    skeleton.root.updateWorldTransform();
+    const oldWX = draggedBone.worldTransform.x;
+    const oldWY = draggedBone.worldTransform.y;
+    const oldWR = draggedBone.worldTransform.rotation;
+    const oldWSX = draggedBone.worldTransform.scaleX;
+    const oldWSY = draggedBone.worldTransform.scaleY;
+
     // Remove from old parent
     if (draggedBone.parent) {
       draggedBone.parent.children = draggedBone.parent.children.filter((b: any) => b.id !== draggedBone.id)
@@ -276,6 +286,29 @@ export function HierarchyPanel() {
     
     // Add to root
     skeleton.root.addChild(draggedBone)
+    
+    // Recalculate local transform relative to root bone
+    skeleton.root.updateWorldTransform();
+    const pWX = skeleton.root.worldTransform.x;
+    const pWY = skeleton.root.worldTransform.y;
+    const pWR = skeleton.root.worldTransform.rotation;
+    
+    const rad = -pWR * Math.PI / 180;
+    const dx = oldWX - pWX;
+    const dy = oldWY - pWY;
+    
+    const lx = (dx * Math.cos(rad) - dy * Math.sin(rad)) / skeleton.root.worldTransform.scaleX;
+    const ly = (dx * Math.sin(rad) + dy * Math.cos(rad)) / skeleton.root.worldTransform.scaleY;
+    
+    draggedBone.localTransform.x = lx;
+    draggedBone.localTransform.y = ly;
+    draggedBone.localTransform.rotation = oldWR - pWR;
+    draggedBone.localTransform.scaleX = oldWSX / skeleton.root.worldTransform.scaleX;
+    draggedBone.localTransform.scaleY = oldWSY / skeleton.root.worldTransform.scaleY;
+    
+    draggedBone.setupTransform = draggedBone.localTransform.clone();
+    
+    skeleton.root.updateWorldTransform();
     forceUpdate()
     pushHistory()
   }

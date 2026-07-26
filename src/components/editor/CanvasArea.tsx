@@ -1512,8 +1512,8 @@ export function CanvasArea() {
 
     if (dragState.current.bone) {
       try {
-        if (editorModeRef.current === "rig") {
-          dragState.current.bone.setupTransform = dragState.current.bone.localTransform.clone()
+        if (editorModeRef.current === "rig" && skeleton) {
+          skeleton.root.saveSetupPose()
         }
         
         pushHistory()
