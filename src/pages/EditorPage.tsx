@@ -148,6 +148,14 @@ export function EditorPage({ onBack }: { onBack: () => void }) {
         {/* Animation Controls Capsule */}
         <div className="flex items-center bg-[#15151a]/80 backdrop-blur-xl border border-white/10 p-1 rounded-full shadow-2xl gap-0.5">
           <button 
+            className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${smoothInterpolation ? "bg-cyan-600 text-white shadow-[0_0_12px_rgba(6,182,212,0.4)]" : "text-gray-500 hover:text-gray-300 hover:bg-white/5"}`}
+            title={smoothInterpolation ? "Interpolation: Smooth (Linear)" : "Interpolation: Step (Hold)"}
+            onClick={() => setSmoothInterpolation(!smoothInterpolation)}
+          ><Spline className="w-4 h-4" /></button>
+
+          <div className="w-px h-5 bg-white/10" />
+
+          <button 
             className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-white hover:bg-white/5 transition-all disabled:opacity-30 disabled:pointer-events-none" 
             title="Prev Frame"
             onClick={() => setFrame(Math.max(0, currentFrameIndex - 1))}
@@ -188,14 +196,6 @@ export function EditorPage({ onBack }: { onBack: () => void }) {
           >
             {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
           </button>
-
-          <div className="w-px h-5 bg-white/10" />
-
-          <button 
-            className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${smoothInterpolation ? "bg-cyan-600 text-white shadow-[0_0_12px_rgba(6,182,212,0.4)]" : "text-gray-500 hover:text-gray-300 hover:bg-white/5"}`}
-            title={smoothInterpolation ? "Interpolation: Smooth (Linear)" : "Interpolation: Step (Hold)"}
-            onClick={() => setSmoothInterpolation(!smoothInterpolation)}
-          ><Spline className="w-4 h-4" /></button>
         </div>
       </div>
 
