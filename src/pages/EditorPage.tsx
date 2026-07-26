@@ -1,6 +1,6 @@
 import React, { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { ChevronLeft, ListTree, MousePointer2, SplinePointer, SquareDashedMousePointer, PenTool, Circle, Square, Triangle, BoxSelect, SlidersHorizontal, Layers, Plus, Minus, Video, Play, Pause, ChevronRight, Settings, Undo2, Redo2, Download, RotateCw, Move, Maximize, MoveDiagonal, MoreVertical, Save } from "lucide-react"
+import { ChevronLeft, ListTree, MousePointer2, SplinePointer, SquareDashedMousePointer, PenTool, Circle, Square, Triangle, BoxSelect, SlidersHorizontal, Layers, Plus, Minus, Video, Play, Pause, ChevronRight, Settings, Undo2, Redo2, Download, RotateCw, Move, Maximize, MoveDiagonal, MoreVertical, Save, Bone as BoneIcon } from "lucide-react"
 
 import { useEditor } from "@/context/EditorContext"
 import { CanvasArea } from "@/components/editor/CanvasArea"
@@ -128,26 +128,23 @@ export function EditorPage({ onBack }: { onBack: () => void }) {
         </div>
       </div>
 
-      {/* Top Center: Mode Switcher */}
-      <div className="absolute top-1 left-1/2 -translate-x-1/2 z-[80]">
-        <div className="flex items-center bg-[#15151a]/80 backdrop-blur-xl border border-white/10 p-1 rounded-full shadow-2xl">
+      {/* Top Right: Mode Switcher + Animation Controls */}
+      <div className="absolute top-1 right-12 z-[80] flex items-center gap-1">
+        {/* Mode Switcher Capsule (icon-only) */}
+        <div className="flex items-center bg-[#15151a]/80 backdrop-blur-xl border border-white/10 p-1 rounded-full shadow-2xl gap-0.5">
           <button 
-            className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all ${editorMode === "rig" ? "bg-orange-500 text-white shadow-[0_0_15px_rgba(249,115,22,0.4)]" : "text-gray-400 hover:text-white hover:bg-white/5"}`}
+            className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${editorMode === "rig" ? "bg-orange-500 text-white shadow-[0_0_12px_rgba(249,115,22,0.4)]" : "text-gray-400 hover:text-white hover:bg-white/5"}`}
             onClick={() => setEditorMode("rig")}
-          >
-            Rigging
-          </button>
+            title="Rigging Mode"
+          ><BoneIcon className="w-4 h-4" /></button>
           <button 
-            className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all ${editorMode === "animate" ? "bg-purple-600 text-white shadow-[0_0_15px_rgba(147,51,234,0.4)]" : "text-gray-400 hover:text-white hover:bg-white/5"}`}
+            className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${editorMode === "animate" ? "bg-purple-600 text-white shadow-[0_0_12px_rgba(147,51,234,0.4)]" : "text-gray-400 hover:text-white hover:bg-white/5"}`}
             onClick={() => setEditorMode("animate")}
-          >
-            Animate
-          </button>
+            title="Animate Mode"
+          ><Video className="w-4 h-4" /></button>
         </div>
-      </div>
 
-      {/* Top Right: Animation Controls (Moved to right-12) */}
-      <div className="absolute top-1 right-12 z-[80]">
+        {/* Animation Controls Capsule */}
         <div className="flex items-center bg-[#15151a]/80 backdrop-blur-xl border border-white/10 p-1 rounded-full shadow-2xl gap-0.5">
           <button 
             className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-white hover:bg-white/5 transition-all disabled:opacity-30 disabled:pointer-events-none" 

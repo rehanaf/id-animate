@@ -1394,9 +1394,9 @@ export function CanvasArea() {
         const cos = Math.cos(pRot)
         const sin = Math.sin(pRot)
 
-        // Apply inverse rotation matrix to delta
-        const ldx = (dwx * cos - dwy * sin) / pScaleX;
-        const ldy = (dwx * sin + dwy * cos) / pScaleY;
+        // Apply inverse (transposed) rotation matrix to delta
+        const ldx = (dwx * cos + dwy * sin) / pScaleX;
+        const ldy = (-dwx * sin + dwy * cos) / pScaleY;
 
         bone.localTransform.x = dragState.current.startLocalX + ldx
         bone.localTransform.y = dragState.current.startLocalY + ldy
@@ -1418,7 +1418,7 @@ export function CanvasArea() {
       if (isTail) {
         // Dragging tail rotates the bone itself
         anim.setBonePose(t, bone.name, "rotation", bone.localTransform.rotation, bone.setupTransform.rotation)
-      } else if (tool === "rotate") {
+      } else if (selectMode === "rotate") {
         if (bone.parent && bone.parent.name !== 'root') {
           // Dragging joint with Rotate tool rotates the parent
           anim.setBonePose(t, bone.parent.name, "rotation", bone.parent.localTransform.rotation, bone.parent.setupTransform.rotation)
@@ -1427,8 +1427,11 @@ export function CanvasArea() {
           anim.setBonePose(t, bone.name, "x", bone.localTransform.x, bone.setupTransform.x)
           anim.setBonePose(t, bone.name, "y", bone.localTransform.y, bone.setupTransform.y)
         }
+      } else if (selectMode === "scale") {
+        anim.setBonePose(t, bone.name, "scaleX", bone.localTransform.scaleX, bone.setupTransform.scaleX)
+        anim.setBonePose(t, bone.name, "scaleY", bone.localTransform.scaleY, bone.setupTransform.scaleY)
       } else {
-        // Default Move Tool translates the bone
+        // Move Tool translates the bone
         anim.setBonePose(t, bone.name, "x", bone.localTransform.x, bone.setupTransform.x)
         anim.setBonePose(t, bone.name, "y", bone.localTransform.y, bone.setupTransform.y)
       }
