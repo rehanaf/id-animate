@@ -22,12 +22,12 @@ const CustomColorPicker = ({ color, onChange, disabled }: any) => {
         </button>
       </DialogTrigger>
       
-      <DialogContent className="bg-[#1a1a24] border-white/10 sm:max-w-[340px]">
+      <DialogContent className="bg-[#1a1a24] border-white/10 w-auto sm:max-w-[280px]">
         <DialogHeader>
           <DialogTitle className="text-gray-400 text-sm font-bold uppercase tracking-wider text-left">Color Picker</DialogTitle>
         </DialogHeader>
         <div className="-mx-4 no-scrollbar max-h-[70vh] overflow-y-auto px-4 flex justify-center">
-          <ColorPicker value={color || '#d1d5db'} onChange={onChange} width={280} />
+          <ColorPicker value={color || '#d1d5db'} onChange={onChange} width={240} height={180} hidePresets={true} hideEyeDrop={true} hideAdvancedSliders={false} hideColorGuide={false} hideInputType={false} />
         </div>
       </DialogContent>
     </Dialog>
