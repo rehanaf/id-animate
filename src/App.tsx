@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Settings, Plus, Video, Bone, FolderPlus, Folder, FolderOpen, ArrowLeft, MoreVertical, Copy, Pencil, Trash2, Upload } from "lucide-react"
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from "@/components/ui/drawer"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import JSZip from "jszip"
 import { AppStorage } from "@/core/Storage"
 import { App as CapacitorApp } from '@capacitor/app'
@@ -818,122 +819,119 @@ export function App() {
       </Drawer>
 
       {/* Group Modal */}
-      {isGroupDrawerOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in" onClick={() => setIsGroupDrawerOpen(false)}>
-          <div className="bg-[#15151a] border border-[#333] rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl ring-1 ring-white/10" onClick={e => e.stopPropagation()}>
-            <div className="p-4 border-b border-[#333]">
-              <h3 className="text-lg font-bold text-white">New Group</h3>
-            </div>
-            <div className="p-4 space-y-4">
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-gray-400">Group Name</label>
-                <input 
-                  type="text" 
-                  className="w-full bg-[#0a0a0f] border border-[#333] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors"
-                  placeholder="e.g. Hero Characters"
-                  value={newGroupName}
-                  onChange={e => setNewGroupName(e.target.value)}
-                  autoFocus
-                />
-              </div>
-            </div>
-            <div className="p-4 flex items-center justify-end gap-2 border-t border-[#333] bg-black/20">
-              <Button variant="ghost" onClick={() => setIsGroupDrawerOpen(false)} className="text-gray-400 hover:text-white rounded-lg">Cancel</Button>
-              <Button onClick={handleCreateGroup} className="bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg px-6">Create</Button>
+      <Dialog open={isGroupDrawerOpen} onOpenChange={setIsGroupDrawerOpen}>
+        <DialogContent className="bg-[#15151a] border-[#333] p-0 overflow-hidden sm:max-w-sm">
+          <DialogHeader className="p-4 border-b border-[#333]">
+            <DialogTitle className="text-white text-left">New Group</DialogTitle>
+          </DialogHeader>
+          <div className="p-4 space-y-4">
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-gray-400">Group Name</label>
+              <input 
+                type="text" 
+                className="w-full bg-[#0a0a0f] border border-[#333] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors"
+                placeholder="e.g. Hero Characters"
+                value={newGroupName}
+                onChange={e => setNewGroupName(e.target.value)}
+                autoFocus
+              />
             </div>
           </div>
-        </div>
-      )}
+          <div className="p-4 flex items-center justify-end gap-2 border-t border-[#333] bg-black/20">
+            <Button variant="ghost" onClick={() => setIsGroupDrawerOpen(false)} className="text-gray-400 hover:text-white rounded-lg">Cancel</Button>
+            <Button onClick={handleCreateGroup} className="bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg px-6">Create</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Custom Rename Modal */}
-      {renameModal?.isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-[#15151a] border border-[#2a2a35] rounded-2xl w-full max-w-sm p-5 shadow-2xl flex flex-col animate-in fade-in zoom-in-95">
-            <h3 className="text-lg font-bold text-white mb-4">Rename {renameModal.type === 'project' ? 'Project' : 'Group'}</h3>
+      <Dialog open={!!renameModal?.isOpen} onOpenChange={(val) => !val && setRenameModal(null)}>
+        <DialogContent className="bg-[#15151a] border-[#2a2a35] sm:max-w-sm p-5">
+          <DialogHeader>
+            <DialogTitle className="text-white text-left">Rename {renameModal?.type === 'project' ? 'Project' : 'Group'}</DialogTitle>
+          </DialogHeader>
+          <div className="my-2">
             <input 
               type="text" 
-              className="w-full bg-[#0a0a0f] border border-[#333] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors mb-6"
+              className="w-full bg-[#0a0a0f] border border-[#333] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors"
               autoFocus
-              value={renameModal.name}
-              onChange={e => setRenameModal({...renameModal, name: e.target.value})}
+              value={renameModal?.name || ""}
+              onChange={e => setRenameModal(renameModal ? {...renameModal, name: e.target.value} : null)}
               onKeyDown={e => {
                 if (e.key === 'Enter') handleRenameConfirm()
               }}
             />
-            <div className="flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => setRenameModal(null)} className="text-gray-400 hover:text-white rounded-full">Cancel</Button>
-              <Button className="bg-blue-600 hover:bg-blue-500 text-white rounded-full px-6" onClick={handleRenameConfirm}>Save</Button>
-            </div>
           </div>
-        </div>
-      )}
+          <div className="flex justify-end gap-2 mt-2">
+            <Button variant="ghost" onClick={() => setRenameModal(null)} className="text-gray-400 hover:text-white rounded-full">Cancel</Button>
+            <Button className="bg-blue-600 hover:bg-blue-500 text-white rounded-full px-6" onClick={handleRenameConfirm}>Save</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Custom Delete Confirm Modal */}
-      {deleteModal?.isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-[#15151a] border border-[#2a2a35] rounded-2xl w-full max-w-sm p-5 shadow-2xl flex flex-col animate-in fade-in zoom-in-95">
-            <h3 className="text-lg font-bold text-white mb-2">Confirm Delete</h3>
-            <p className="text-gray-400 text-sm mb-6">
-              {deleteModal.type === 'project' 
+      <Dialog open={!!deleteModal?.isOpen} onOpenChange={(val) => !val && setDeleteModal(null)}>
+        <DialogContent className="bg-[#15151a] border-[#2a2a35] sm:max-w-sm p-5">
+          <DialogHeader>
+            <DialogTitle className="text-white text-left">Confirm Delete</DialogTitle>
+          </DialogHeader>
+          <div className="my-2">
+            <p className="text-gray-400 text-sm">
+              {deleteModal?.type === 'project' 
                 ? "Are you sure you want to delete this project? This action cannot be undone."
                 : "Are you sure you want to delete this group? Projects inside will not be deleted, they will just be ungrouped."}
             </p>
-            <div className="flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => setDeleteModal(null)} className="text-gray-400 hover:text-white rounded-full">Cancel</Button>
-              <Button className="bg-red-600 hover:bg-red-500 text-white rounded-full px-6" onClick={handleDeleteConfirm}>Delete</Button>
-            </div>
           </div>
-        </div>
-      )}
+          <div className="flex justify-end gap-2 mt-2">
+            <Button variant="ghost" onClick={() => setDeleteModal(null)} className="text-gray-400 hover:text-white rounded-full">Cancel</Button>
+            <Button className="bg-red-600 hover:bg-red-500 text-white rounded-full px-6" onClick={handleDeleteConfirm}>Delete</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Settings Modal */}
-      {isSettingsOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-[#15151a] border border-[#2a2a35] rounded-2xl w-full max-w-md p-6 shadow-2xl flex flex-col animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-white">Settings</h3>
-              <Button variant="ghost" size="icon" className="rounded-full hover:bg-white/10 text-gray-400 hover:text-white" onClick={() => setIsSettingsOpen(false)}>
-                 <span className="sr-only">Close</span>
-                 ✕
-              </Button>
-            </div>
-            
-            <div className="space-y-6">
-               <div className="space-y-2">
-                 <h4 className="text-sm font-semibold text-white">Data Management</h4>
-                 <p className="text-xs text-gray-400">Clear all saved workspace data, projects, and settings. This will restore the app to its original state.</p>
-                 <Button 
-                   variant="destructive" 
-                   className="w-full rounded-full font-semibold"
-                   onClick={() => {
-                     setIsSettingsOpen(false)
-                     setIsClearDataConfirmOpen(true)
-                   }}
-                 >
-                   <Trash2 className="w-4 h-4 mr-2" />
-                   Clear Reset Data
-                 </Button>
-               </div>
-            </div>
+      <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+        <DialogContent className="bg-[#15151a] border-[#2a2a35] sm:max-w-md p-6">
+          <DialogHeader>
+            <DialogTitle className="text-white text-left">Settings</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6 mt-4">
+             <div className="space-y-2">
+               <h4 className="text-sm font-semibold text-white">Data Management</h4>
+               <p className="text-xs text-gray-400">Clear all saved workspace data, projects, and settings. This will restore the app to its original state.</p>
+               <Button 
+                 variant="destructive" 
+                 className="w-full rounded-full font-semibold"
+                 onClick={() => {
+                   setIsSettingsOpen(false)
+                   setIsClearDataConfirmOpen(true)
+                 }}
+               >
+                 <Trash2 className="w-4 h-4 mr-2" />
+                 Clear Reset Data
+               </Button>
+             </div>
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
       {/* Clear Data Confirm Modal */}
-      {isClearDataConfirmOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-[#15151a] border border-[#2a2a35] rounded-2xl w-full max-w-sm p-5 shadow-2xl flex flex-col animate-in fade-in zoom-in-95">
-            <h3 className="text-lg font-bold text-white mb-2">Clear All Data</h3>
-            <p className="text-gray-400 text-sm mb-6">
+      <Dialog open={isClearDataConfirmOpen} onOpenChange={setIsClearDataConfirmOpen}>
+        <DialogContent className="bg-[#15151a] border-[#2a2a35] sm:max-w-sm p-5">
+          <DialogHeader>
+            <DialogTitle className="text-white text-left">Clear All Data</DialogTitle>
+          </DialogHeader>
+          <div className="my-2">
+            <p className="text-gray-400 text-sm">
               Are you sure you want to clear all data? This will delete all your local projects, animations, and rigs. <strong>This action cannot be undone.</strong>
             </p>
-            <div className="flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => setIsClearDataConfirmOpen(false)} className="text-gray-400 hover:text-white rounded-full">Cancel</Button>
-              <Button className="bg-red-600 hover:bg-red-500 text-white rounded-full px-6" onClick={handleClearData}>Clear & Reload</Button>
-            </div>
           </div>
-        </div>
-      )}
+          <div className="flex justify-end gap-2 mt-2">
+            <Button variant="ghost" onClick={() => setIsClearDataConfirmOpen(false)} className="text-gray-400 hover:text-white rounded-full">Cancel</Button>
+            <Button className="bg-red-600 hover:bg-red-500 text-white rounded-full px-6" onClick={handleClearData}>Clear & Reload</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -1,35 +1,36 @@
 import React from "react"
 import { Copy, Trash2, Eye, EyeOff, ChevronDown, ChevronRight } from "lucide-react"
 import { useEditor } from "@/context/EditorContext"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import ColorPicker from 'react-best-gradient-color-picker'
 
 const CustomColorPicker = ({ color, onChange, disabled }: any) => {
-  const [open, setOpen] = React.useState(false);
-  const ref = React.useRef<HTMLDivElement>(null);
-
   return (
-    <>
-      <div 
-        className={`w-full h-8 rounded-lg cursor-pointer border border-white/10 checkerboard-bg ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-        onClick={() => !disabled && setOpen(true)}
-      >
-        <div className="w-full h-full rounded-lg" style={{ background: color || '#d1d5db' }} />
-      </div>
-      {open && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-auto">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setOpen(false)} />
-          <div className="relative z-[101] bg-[#1a1a24] p-4 rounded-xl shadow-2xl border border-white/10 w-full max-w-[340px] max-h-[100vh] overflow-y-auto flex flex-col">
-            <div className="flex justify-between items-center mb-4">
-               <span className="text-white text-sm font-bold uppercase tracking-wider text-gray-400">Color Picker</span>
-               <button className="text-gray-400 hover:text-white bg-white/10 hover:bg-white/20 w-8 h-8 rounded-full flex items-center justify-center transition-colors" onClick={() => setOpen(false)}>✕</button>
-            </div>
-            <div className="flex-1 overflow-hidden" style={{ minHeight: '320px' }}>
-              <ColorPicker value={color || '#d1d5db'} onChange={onChange} width={300} />
-            </div>
-          </div>
+    <Dialog>
+      <DialogTrigger asChild>
+        <button 
+          disabled={disabled}
+          className={`w-full h-8 rounded-lg cursor-pointer border border-white/10 checkerboard-bg block p-0 focus:outline-none ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+        >
+          <div className="w-full h-full rounded-lg pointer-events-none" style={{ background: color || '#d1d5db' }} />
+        </button>
+      </DialogTrigger>
+      
+      <DialogContent className="bg-[#1a1a24] border-white/10 sm:max-w-[340px] p-4">
+        <DialogHeader className="mb-2">
+          <DialogTitle className="text-gray-400 text-sm font-bold uppercase tracking-wider text-left">Color Picker</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto pb-2 flex justify-center">
+          <ColorPicker value={color || '#d1d5db'} onChange={onChange} width={280} />
         </div>
-      )}
-    </>
+      </DialogContent>
+    </Dialog>
   );
 }
 
