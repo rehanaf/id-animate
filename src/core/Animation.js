@@ -30,7 +30,7 @@ export class Animation {
     this.tracks = []; // Array of AnimationTrack
   }
 
-  setBonePose(time, boneName, property, value, setupValue = undefined) {
+  setBonePose(time, boneName, property, value, setupValue = undefined, fps = 8, isSmooth = false) {
     let track = this.tracks.find(t => t.boneName === boneName && t.property === property);
     if (!track) {
       track = new AnimationTrack(boneName, property);
@@ -41,6 +41,26 @@ export class Animation {
         track.addKeyframe(0, setupValue);
       }
     }
+
+    // Auto-hold logic when smooth interpolation is inactive
+    if (!isSmooth && time > 0) {
+      const keys = track.keyframes;
+      let lastKey = null;
+      for (let i = keys.length - 1; i >= 0; i--) {
+        if (keys[i].time < time - 0.001) {
+          lastKey = keys[i];
+          break;
+        }
+      }
+      
+      if (lastKey) {
+        const frameTime = 1 / fps;
+        if (time - lastKey.time > frameTime + 0.001) {
+          track.addKeyframe(time - frameTime, lastKey.value);
+        }
+      }
+    }
+
     track.addKeyframe(time, value);
     if (this.duration < time) this.duration = time;
   }

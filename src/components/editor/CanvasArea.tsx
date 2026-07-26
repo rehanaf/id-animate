@@ -215,7 +215,6 @@ export function CanvasArea() {
       if (!currentSkel) return
 
       animator.skeleton = currentSkel
-      animator.stepMode = !smoothInterpRef.current
 
       const dt = (now - lastTime) / 1000 // delta in seconds
       lastTime = now
@@ -1420,26 +1419,28 @@ export function CanvasArea() {
     if (editorModeRef.current === "animate" && currentAnimationRef.current) {
       const anim = currentAnimationRef.current
       const t = currentTimeRef.current
+      const currentFps = fpsRef.current;
+      const isSmooth = smoothInterpRef.current;
       
       if (isTail) {
         // Dragging tail rotates the bone itself
-        anim.setBonePose(t, bone.name, "rotation", bone.localTransform.rotation, bone.setupTransform.rotation)
+        anim.setBonePose(t, bone.name, "rotation", bone.localTransform.rotation, bone.setupTransform.rotation, currentFps, isSmooth)
       } else if (selectMode === "rotate") {
         if (bone.parent && bone.parent.name !== 'root') {
           // Dragging joint with Rotate tool rotates the parent
-          anim.setBonePose(t, bone.parent.name, "rotation", bone.parent.localTransform.rotation, bone.parent.setupTransform.rotation)
+          anim.setBonePose(t, bone.parent.name, "rotation", bone.parent.localTransform.rotation, bone.parent.setupTransform.rotation, currentFps, isSmooth)
         } else {
           // Root or direct child of root translates
-          anim.setBonePose(t, bone.name, "x", bone.localTransform.x, bone.setupTransform.x)
-          anim.setBonePose(t, bone.name, "y", bone.localTransform.y, bone.setupTransform.y)
+          anim.setBonePose(t, bone.name, "x", bone.localTransform.x, bone.setupTransform.x, currentFps, isSmooth)
+          anim.setBonePose(t, bone.name, "y", bone.localTransform.y, bone.setupTransform.y, currentFps, isSmooth)
         }
       } else if (selectMode === "scale") {
-        anim.setBonePose(t, bone.name, "scaleX", bone.localTransform.scaleX, bone.setupTransform.scaleX)
-        anim.setBonePose(t, bone.name, "scaleY", bone.localTransform.scaleY, bone.setupTransform.scaleY)
+        anim.setBonePose(t, bone.name, "scaleX", bone.localTransform.scaleX, bone.setupTransform.scaleX, currentFps, isSmooth)
+        anim.setBonePose(t, bone.name, "scaleY", bone.localTransform.scaleY, bone.setupTransform.scaleY, currentFps, isSmooth)
       } else {
         // Move Tool translates the bone
-        anim.setBonePose(t, bone.name, "x", bone.localTransform.x, bone.setupTransform.x)
-        anim.setBonePose(t, bone.name, "y", bone.localTransform.y, bone.setupTransform.y)
+        anim.setBonePose(t, bone.name, "x", bone.localTransform.x, bone.setupTransform.x, currentFps, isSmooth)
+        anim.setBonePose(t, bone.name, "y", bone.localTransform.y, bone.setupTransform.y, currentFps, isSmooth)
       }
     }
   }
