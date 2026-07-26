@@ -1144,8 +1144,14 @@ export function CanvasArea() {
       newBone.shapeType = activeShapeRef.current === "square" ? "rect" : activeShapeRef.current
       newBone.assetWidth = 0
       newBone.assetHeight = 0
-      newBone.localTransform.x = worldX - skeleton.root.worldTransform.x
-      newBone.localTransform.y = worldY - skeleton.root.worldTransform.y
+      
+      const dw = worldX - skeleton.root.worldTransform.x;
+      const dh = worldY - skeleton.root.worldTransform.y;
+      const rootRad = -skeleton.root.worldTransform.rotation * Math.PI / 180;
+      
+      newBone.localTransform.x = (dw * Math.cos(rootRad) - dh * Math.sin(rootRad)) / skeleton.root.worldTransform.scaleX;
+      newBone.localTransform.y = (dw * Math.sin(rootRad) + dh * Math.cos(rootRad)) / skeleton.root.worldTransform.scaleY;
+      
       newBone.setupTransform = newBone.localTransform.clone()
       
       skeleton.root.addChild(newBone)
@@ -1368,16 +1374,38 @@ export function CanvasArea() {
     }
     
     if (activeToolRef.current === "shape" && shapeCreateState.current.isCreating && shapeCreateState.current.bone) {
-       const w = Math.abs(worldX - shapeCreateState.current.startX);
-       const h = Math.abs(worldY - shapeCreateState.current.startY);
-       const cx_shape = (shapeCreateState.current.startX + worldX) / 2;
-       const cy_shape = (shapeCreateState.current.startY + worldY) / 2;
+       let w = Math.abs(worldX - shapeCreateState.current.startX);
+       let h = Math.abs(worldY - shapeCreateState.current.startY);
+       
+       if (activeShapeRef.current === "square" || activeShapeRef.current === "circle") {
+          const size = Math.max(w, h);
+          w = size;
+          h = size;
+       }
+       
+       const signX = worldX >= shapeCreateState.current.startX ? 1 : -1;
+       const signY = worldY >= shapeCreateState.current.startY ? 1 : -1;
+       
+       const cx_shape = shapeCreateState.current.startX + (w / 2) * signX;
+       const cy_shape = shapeCreateState.current.startY + (h / 2) * signY;
+       
        const b = shapeCreateState.current.bone;
-       b.assetWidth = w;
-       b.assetHeight = h;
-       b.localTransform.x = cx_shape - skeleton.root.worldTransform.x;
-       b.localTransform.y = cy_shape - skeleton.root.worldTransform.y;
-       // No need to pushHistory on every move, wait until mouse up
+       
+       const dw = cx_shape - skeleton.root.worldTransform.x;
+       const dh = cy_shape - skeleton.root.worldTransform.y;
+       const rootRad = -skeleton.root.worldTransform.rotation * Math.PI / 180;
+       
+       b.localTransform.x = (dw * Math.cos(rootRad) - dh * Math.sin(rootRad)) / skeleton.root.worldTransform.scaleX;
+       b.localTransform.y = (dw * Math.sin(rootRad) + dh * Math.cos(rootRad)) / skeleton.root.worldTransform.scaleY;
+       
+       b.setupTransform = b.localTransform.clone();
+       
+       // Asset width/height must also be scaled inversely by root scale if root is scaled
+       b.assetWidth = w / skeleton.root.worldTransform.scaleX;
+       b.assetHeight = h / skeleton.root.worldTransform.scaleY;
+       
+       b.updateWorldTransform(skeleton.root.worldTransform);
+       forceUpdate();
        return;
     }
 
@@ -1430,8 +1458,12 @@ export function CanvasArea() {
       const dwx = worldX - meshDragState.current.startX;
       const dwy = worldY - meshDragState.current.startY;
       const brad = -bone.worldTransform.rotation * Math.PI / 180;
-      const ldx = (dwx * Math.cos(brad) - dwy * Math.sin(brad)) / bone.worldTransform.scaleX;
-      const ldy = (dwx * Math.sin(brad) + dwy * Math.cos(brad)) / bone.worldTransform.scaleY;
+      const dx1 = (dwx * Math.cos(brad) - dwy * Math.sin(brad)) / bone.worldTransform.scaleX;
+      const dy1 = (dwx * Math.sin(brad) + dwy * Math.cos(brad)) / bone.worldTransform.scaleY;
+      
+      const brad2 = -(bone.assetRotation || 0) * Math.PI / 180;
+      const ldx = dx1 * Math.cos(brad2) - dy1 * Math.sin(brad2);
+      const ldy = dx1 * Math.sin(brad2) + dy1 * Math.cos(brad2);
       
       let newW = meshDragState.current.startW;
       let newH = meshDragState.current.startH;
