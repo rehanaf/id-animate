@@ -17,7 +17,20 @@ export class Bone {
     // Properti khusus untuk gambar/sprite/shape
     this.assetType = 'image'; // 'image' or 'shape'
     this.shapeType = 'rect'; // 'rect' or 'circle'
-    this.shapeColor = '#ff0000';
+    this.shapeColor = '#d1d5db'; // default light gray
+    
+    // Stroke properties
+    this.strokeEnabled = false;
+    this.strokeColor = '#000000';
+    this.strokeWidth = 2;
+    
+    // Shadow properties
+    this.shadowEnabled = false;
+    this.shadowColor = '#000000';
+    this.shadowBlur = 10;
+    this.shadowOffsetX = 5;
+    this.shadowOffsetY = 5;
+
     this.assetUrl = null; 
     this.assetData = null; // Base64 image data
     this.assetWidth = 100;
@@ -109,6 +122,14 @@ export class Bone {
       assetType: this.assetType,
       shapeType: this.shapeType,
       shapeColor: this.shapeColor,
+      strokeEnabled: this.strokeEnabled,
+      strokeColor: this.strokeColor,
+      strokeWidth: this.strokeWidth,
+      shadowEnabled: this.shadowEnabled,
+      shadowColor: this.shadowColor,
+      shadowBlur: this.shadowBlur,
+      shadowOffsetX: this.shadowOffsetX,
+      shadowOffsetY: this.shadowOffsetY,
       shapeClosed: this.shapeClosed,
       shapeOpacity: this.shapeOpacity,
       pathStyle: this.pathStyle,
@@ -152,7 +173,18 @@ export class Bone {
     bone.zIndex = data.zIndex || 0;
     bone.assetType = data.assetType || 'image';
     bone.shapeType = data.shapeType || 'rect';
-    bone.shapeColor = data.shapeColor || '#ff0000';
+    bone.shapeColor = data.shapeColor || '#d1d5db';
+    
+    bone.strokeEnabled = data.strokeEnabled || false;
+    bone.strokeColor = data.strokeColor || '#000000';
+    bone.strokeWidth = data.strokeWidth !== undefined ? data.strokeWidth : 2;
+    
+    bone.shadowEnabled = data.shadowEnabled || false;
+    bone.shadowColor = data.shadowColor || '#000000';
+    bone.shadowBlur = data.shadowBlur !== undefined ? data.shadowBlur : 10;
+    bone.shadowOffsetX = data.shadowOffsetX !== undefined ? data.shadowOffsetX : 5;
+    bone.shadowOffsetY = data.shadowOffsetY !== undefined ? data.shadowOffsetY : 5;
+    
     bone.shapeOpacity = data.shapeOpacity !== undefined ? data.shapeOpacity : 100;
     bone.shapeClosed = data.shapeClosed !== undefined ? data.shapeClosed : true;
     bone.pathStyle = data.pathStyle || 'solid';

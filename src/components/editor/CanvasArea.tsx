@@ -372,6 +372,105 @@ export function CanvasArea() {
           }
         }
 
+        // Helper to parse gradient string from react-best-gradient-color-picker
+        const applyFillStyle = (context: CanvasRenderingContext2D, colorStr: string, actW: number, actH: number) => {
+          if (!colorStr) {
+            context.fillStyle = "#d1d5db";
+            return;
+          }
+          if (colorStr.includes('linear-gradient')) {
+            try {
+              const match = colorStr.match(/linear-gradient\((.*)\)/);
+              if (match) {
+                // Split by comma, but ignore commas inside parentheses (like in rgba)
+                const parts = match[1].split(/,(?![^(]*\))/);
+                let angle = 180; // default to bottom
+                let stopsStart = 0;
+                
+                const firstPart = parts[0].trim();
+                if (firstPart.endsWith('deg')) {
+                  angle = parseFloat(firstPart);
+                  stopsStart = 1;
+                } else if (firstPart.startsWith('to ')) {
+                  stopsStart = 1;
+                }
+
+                // Calculate gradient coordinates based on angle
+                const rad = (angle - 90) * (Math.PI / 180);
+                const halfW = actW / 2;
+                const halfH = actH / 2;
+                const x1 = -Math.cos(rad) * halfW;
+                const y1 = -Math.sin(rad) * halfH;
+                const x2 = Math.cos(rad) * halfW;
+                const y2 = Math.sin(rad) * halfH;
+
+                const grad = context.createLinearGradient(x1, y1, x2, y2);
+
+                for (let i = stopsStart; i < parts.length; i++) {
+                  const stopStr = parts[i].trim();
+                  const lastSpace = stopStr.lastIndexOf(' ');
+                  if (lastSpace !== -1) {
+                    const color = stopStr.substring(0, lastSpace).trim();
+                    const pctStr = stopStr.substring(lastSpace).trim();
+                    const pct = parseFloat(pctStr) / 100;
+                    if (!isNaN(pct)) grad.addColorStop(pct, color);
+                  } else {
+                    grad.addColorStop(i === stopsStart ? 0 : 1, stopStr);
+                  }
+                }
+                context.fillStyle = grad;
+                return;
+              }
+            } catch (e) { console.warn("Failed to parse linear gradient", e) }
+          } else if (colorStr.includes('radial-gradient')) {
+            try {
+              const match = colorStr.match(/radial-gradient\((.*)\)/);
+              if (match) {
+                const parts = match[1].split(/,(?![^(]*\))/);
+                const stopsStart = parts[0].includes('circle') || parts[0].includes('at ') ? 1 : 0;
+                const radius = Math.max(actW, actH) / 2;
+                const grad = context.createRadialGradient(0, 0, 0, 0, 0, radius);
+                for (let i = stopsStart; i < parts.length; i++) {
+                  const stopStr = parts[i].trim();
+                  const lastSpace = stopStr.lastIndexOf(' ');
+                  if (lastSpace !== -1) {
+                    const color = stopStr.substring(0, lastSpace).trim();
+                    const pctStr = stopStr.substring(lastSpace).trim();
+                    const pct = parseFloat(pctStr) / 100;
+                    if (!isNaN(pct)) grad.addColorStop(pct, color);
+                  } else {
+                    grad.addColorStop(i === stopsStart ? 0 : 1, stopStr);
+                  }
+                }
+                context.fillStyle = grad;
+                return;
+              }
+            } catch (e) { console.warn("Failed to parse radial gradient", e) }
+          }
+          
+          context.fillStyle = colorStr;
+        };
+
+        const applyShadow = (context: CanvasRenderingContext2D, b: any) => {
+          if (b.shadowEnabled) {
+            context.shadowColor = b.shadowColor || '#000000';
+            context.shadowBlur = b.shadowBlur || 0;
+            context.shadowOffsetX = b.shadowOffsetX || 0;
+            context.shadowOffsetY = b.shadowOffsetY || 0;
+          } else {
+            context.shadowColor = 'transparent';
+          }
+        };
+
+        const drawStroke = (context: CanvasRenderingContext2D, b: any) => {
+          if (b.strokeEnabled && b.strokeWidth > 0) {
+            context.shadowColor = 'transparent'; // prevent shadow on stroke if already applied to fill
+            context.lineWidth = b.strokeWidth;
+            context.strokeStyle = b.strokeColor || '#000000';
+            context.stroke();
+          }
+        };
+
         // Draw Asset/Shape if attached
         if (bone.assetType === "image") {
           ctx.save()
@@ -383,8 +482,11 @@ export function CanvasArea() {
           if (bone.assetOffset) ctx.translate(bone.assetOffset.x, bone.assetOffset.y)
           if (bone.assetRotation) ctx.rotate(bone.assetRotation * Math.PI / 180)
           
+          applyShadow(ctx, bone);
+
           if (bone.imageObj && bone.imageObj.complete) {
             ctx.drawImage(bone.imageObj, -actW / 2, -actH / 2, actW, actH)
+            drawStroke(ctx, bone);
           }
           ctx.restore()
         } else if (bone.assetType === "shape" || bone.assetType === "path") {
@@ -398,25 +500,34 @@ export function CanvasArea() {
           if (bone.assetOffset) ctx.translate(bone.assetOffset.x, bone.assetOffset.y)
           if (bone.assetRotation) ctx.rotate(bone.assetRotation * Math.PI / 180)
           
-          ctx.fillStyle = bone.shapeColor || "#3b82f6"
+          applyFillStyle(ctx, bone.shapeColor || "#d1d5db", actW, actH);
+          applyShadow(ctx, bone);
           
           if (bone.assetType === "path") {
             if (bone.pathPoints) {
               drawPath(ctx, bone.pathPoints, bone.shapeClosed, bone.pathIsCurved !== false)
               ctx.fill()
+              
+              // Path has its own pathThickness which acts as main stroke or outline
               if (bone.pathThickness > 0) {
+                ctx.shadowColor = 'transparent';
                 ctx.lineWidth = bone.pathThickness
-                ctx.strokeStyle = bone.shapeColor || '#3b82f6'
+                // Path stroke color defaults to shapeColor if not provided, or a separate color
+                ctx.strokeStyle = bone.strokeEnabled ? bone.strokeColor : (bone.shapeColor || '#d1d5db')
                 ctx.lineCap = (bone.pathLineCap as CanvasLineCap) || 'round'
                 ctx.stroke()
+              } else {
+                 drawStroke(ctx, bone);
               }
             }
           } else if (bone.shapeType === "rect" || bone.shapeType === "square") {
             ctx.fillRect(-actW/2, -actH/2, actW, actH)
+            drawStroke(ctx, bone)
           } else if (bone.shapeType === "circle") {
             ctx.beginPath()
             ctx.arc(0, 0, Math.max(actW, actH)/2, 0, Math.PI * 2)
             ctx.fill()
+            drawStroke(ctx, bone)
           } else if (bone.shapeType === "triangle") {
             ctx.beginPath()
             ctx.moveTo(0, -actH/2)
@@ -424,6 +535,7 @@ export function CanvasArea() {
             ctx.lineTo(-actW/2, actH/2)
             ctx.closePath()
             ctx.fill()
+            drawStroke(ctx, bone)
           }
           ctx.restore()
         }

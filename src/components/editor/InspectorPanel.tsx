@@ -236,6 +236,43 @@ export function InspectorPanel() {
         </div>
       </AccordionItem>
 
+import ColorPicker from 'react-best-gradient-color-picker'
+
+const CustomColorPicker = ({ color, onChange, disabled }: any) => {
+  const [open, setOpen] = React.useState(false);
+  const ref = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (ref.current && !ref.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    if (open) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [open]);
+
+  return (
+    <div className="relative" ref={ref}>
+      <div 
+        className={`w-full h-8 rounded-lg cursor-pointer border border-white/10 checkerboard-bg ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+        onClick={() => !disabled && setOpen(!open)}
+      >
+        <div className="w-full h-full rounded-lg" style={{ background: color || '#d1d5db' }} />
+      </div>
+      {open && (
+        <div className="absolute right-0 top-10 z-[100] bg-[#1a1a24] p-3 rounded-xl shadow-2xl border border-white/10 w-[300px]">
+          <ColorPicker value={color || '#d1d5db'} onChange={onChange} />
+        </div>
+      )}
+    </div>
+  );
+}
+
       <AccordionItem title="Asset Settings">
         <div className="flex flex-col gap-1 mb-3">
           <label className="text-[10px] text-gray-500 font-bold uppercase">Asset Type</label>
@@ -301,13 +338,11 @@ export function InspectorPanel() {
                 <option value="triangle">Triangle</option>
               </select>
             </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] text-gray-500 font-bold uppercase">Shape Color</label>
-              <input
-                type="color"
-                value={selectedBone.shapeColor || "#3b82f6"}
-                onChange={(e) => handleBonePropertyChange("shapeColor", e.target.value)}
-                className="w-full h-8 bg-black/40 border border-white/10 rounded-lg cursor-pointer"
+            <div className="flex flex-col gap-1 relative">
+              <label className="text-[10px] text-gray-500 font-bold uppercase">Fill Color / Gradient</label>
+              <CustomColorPicker 
+                color={selectedBone.shapeColor} 
+                onChange={(c: string) => handleBonePropertyChange("shapeColor", c)}
                 disabled={isAnimateMode}
               />
             </div>
@@ -316,18 +351,16 @@ export function InspectorPanel() {
         
         {selectedBone.assetType === "path" && (
           <div className="flex flex-col gap-3 pt-2 border-t border-white/5">
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] text-gray-500 font-bold uppercase">Color / Stroke Color</label>
-              <input
-                type="color"
-                value={selectedBone.shapeColor || "#3b82f6"}
-                onChange={(e) => handleBonePropertyChange("shapeColor", e.target.value)}
-                className="w-full h-8 bg-black/40 border border-white/10 rounded-lg cursor-pointer"
+            <div className="flex flex-col gap-1 relative">
+              <label className="text-[10px] text-gray-500 font-bold uppercase">Fill Color / Gradient</label>
+              <CustomColorPicker 
+                color={selectedBone.shapeColor} 
+                onChange={(c: string) => handleBonePropertyChange("shapeColor", c)}
                 disabled={isAnimateMode}
               />
             </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] text-gray-500 font-bold uppercase">Stroke Thickness</label>
+            <div className="flex flex-col gap-1 relative">
+              <label className="text-[10px] text-gray-500 font-bold uppercase">Path Fill Stroke Thickness (Outline)</label>
               <input
                 type="number"
                 step="1"
@@ -340,6 +373,111 @@ export function InspectorPanel() {
             </div>
           </div>
         )}
+
+        {/* Global Stroke Settings */}
+        {selectedBone.assetType && (
+          <div className="flex flex-col gap-3 pt-3 mt-3 border-t border-white/10">
+            <div className="flex items-center justify-between">
+              <label className="text-[10px] text-gray-300 font-bold uppercase">Stroke Outline</label>
+              <input 
+                type="checkbox" 
+                checked={selectedBone.strokeEnabled || false} 
+                onChange={(e) => handleBonePropertyChange("strokeEnabled", e.target.checked)} 
+                disabled={isAnimateMode}
+              />
+            </div>
+            {selectedBone.strokeEnabled && (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1 relative">
+                  <label className="text-[10px] text-gray-500 font-bold uppercase">Color</label>
+                  <CustomColorPicker 
+                    color={selectedBone.strokeColor} 
+                    onChange={(c: string) => handleBonePropertyChange("strokeColor", c)}
+                    disabled={isAnimateMode}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] text-gray-500 font-bold uppercase">Width</label>
+                  <input
+                    type="number"
+                    step="1"
+                    min="0"
+                    value={selectedBone.strokeWidth !== undefined ? selectedBone.strokeWidth : 2}
+                    onChange={(e) => handleBonePropertyChange("strokeWidth", parseFloat(e.target.value) || 0)}
+                    className="w-full bg-black/40 border border-white/10 rounded-lg px-2 py-1.5 text-sm text-white font-mono focus:outline-none focus:border-blue-500"
+                    disabled={isAnimateMode}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Global Shadow Settings */}
+        {selectedBone.assetType && (
+          <div className="flex flex-col gap-3 pt-3 mt-3 border-t border-white/10">
+            <div className="flex items-center justify-between">
+              <label className="text-[10px] text-gray-300 font-bold uppercase">Drop Shadow</label>
+              <input 
+                type="checkbox" 
+                checked={selectedBone.shadowEnabled || false} 
+                onChange={(e) => handleBonePropertyChange("shadowEnabled", e.target.checked)} 
+                disabled={isAnimateMode}
+              />
+            </div>
+            {selectedBone.shadowEnabled && (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1 relative">
+                    <label className="text-[10px] text-gray-500 font-bold uppercase">Color</label>
+                    <CustomColorPicker 
+                      color={selectedBone.shadowColor} 
+                      onChange={(c: string) => handleBonePropertyChange("shadowColor", c)}
+                      disabled={isAnimateMode}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] text-gray-500 font-bold uppercase">Blur</label>
+                    <input
+                      type="number"
+                      step="1"
+                      min="0"
+                      value={selectedBone.shadowBlur !== undefined ? selectedBone.shadowBlur : 10}
+                      onChange={(e) => handleBonePropertyChange("shadowBlur", parseFloat(e.target.value) || 0)}
+                      className="w-full bg-black/40 border border-white/10 rounded-lg px-2 py-1.5 text-sm text-white font-mono focus:outline-none focus:border-blue-500"
+                      disabled={isAnimateMode}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] text-gray-500 font-bold uppercase">Offset X</label>
+                    <input
+                      type="number"
+                      step="1"
+                      value={selectedBone.shadowOffsetX !== undefined ? selectedBone.shadowOffsetX : 5}
+                      onChange={(e) => handleBonePropertyChange("shadowOffsetX", parseFloat(e.target.value) || 0)}
+                      className="w-full bg-black/40 border border-white/10 rounded-lg px-2 py-1.5 text-sm text-white font-mono focus:outline-none focus:border-blue-500"
+                      disabled={isAnimateMode}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] text-gray-500 font-bold uppercase">Offset Y</label>
+                    <input
+                      type="number"
+                      step="1"
+                      value={selectedBone.shadowOffsetY !== undefined ? selectedBone.shadowOffsetY : 5}
+                      onChange={(e) => handleBonePropertyChange("shadowOffsetY", parseFloat(e.target.value) || 0)}
+                      className="w-full bg-black/40 border border-white/10 rounded-lg px-2 py-1.5 text-sm text-white font-mono focus:outline-none focus:border-blue-500"
+                      disabled={isAnimateMode}
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
       </AccordionItem>
 
       {selectedBone.assetType && (
