@@ -1,6 +1,6 @@
 import React, { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { ChevronLeft, ListTree, MousePointer2, SplinePointer, SquareDashedMousePointer, PenTool, Circle, Square, Triangle, BoxSelect, SlidersHorizontal, Layers, Plus, Minus, Video, Play, Pause, ChevronRight, Settings, Undo2, Redo2, Download, RotateCw, Move, Maximize, MoveDiagonal, MoreVertical, Save, Bone as BoneIcon, Spline } from "lucide-react"
+import { ArrowLeft, ChevronLeft, ListTree, MousePointer2, SplinePointer, SquareDashedMousePointer, PenTool, Circle, Square, Triangle, BoxSelect, SlidersHorizontal, Layers, Plus, Minus, Video, Play, Pause, ChevronRight, Settings, Undo2, Redo2, Download, RotateCw, Move, Maximize, MoveDiagonal, MoreVertical, Save, Bone as BoneIcon, Spline } from "lucide-react"
 
 import { useEditor } from "@/context/EditorContext"
 import { CanvasArea } from "@/components/editor/CanvasArea"
@@ -51,15 +51,15 @@ export function EditorPage({ onBack }: { onBack: () => void }) {
       <CanvasArea />
 
       {/* Back Button */}
-      <div className="absolute top-1 left-1 z-[80]">
+      <div className="absolute top-1 left-1 z-[100] cursor-pointer">
         <Button 
           variant="ghost" 
           size="icon" 
           onClick={onBack} 
-          className="w-10 h-10 rounded-full bg-[#15151a]/80 backdrop-blur-xl border border-white/10 text-gray-300 hover:bg-white/10 hover:text-white transition-all shadow-2xl" 
+          className="w-10 h-10 rounded-full bg-[#15151a]/80 backdrop-blur-xl border border-white/10 text-gray-300 hover:bg-white/10 hover:text-white transition-all shadow-2xl pointer-events-auto" 
           title="Back to Menu"
         >
-          <ChevronLeft className="w-4 h-4" />
+          <ArrowLeft className="w-5 h-5" />
         </Button>
       </div>
 
