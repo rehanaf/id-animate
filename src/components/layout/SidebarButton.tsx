@@ -29,7 +29,7 @@ export function SidebarButton({
       <Icon className="w-4 h-4" />
       {hasSubMenu && (
         <div 
-          className={`absolute top-[4px] right-[4px] w-1.5 h-1.5 rounded-full transition-colors ${active ? "bg-white" : "bg-gray-400 group-hover:bg-white"}`}
+          className={`absolute top-[4px] right-[4px] w-1 h-1 rounded-full transition-colors ${active ? "bg-white" : "bg-gray-400 group-hover:bg-white"}`}
         />
       )}
     </Button>
