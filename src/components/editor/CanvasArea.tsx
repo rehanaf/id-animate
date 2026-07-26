@@ -171,10 +171,23 @@ export function CanvasArea() {
 
     // Listen for fit-to-screen request
     const handleResetCamera = () => {
+      if (!canvas) return
+      const rect = canvas.getBoundingClientRect()
+      const cw = canvasWidth || 800
+      const ch = canvasHeight || 600
+      
+      // Subtract visible padding for UI panels and timeline
+      const availableW = rect.width - 40
+      const availableH = rect.height - 240
+      
+      const fitZoom = Math.min(availableW / cw, availableH / ch)
+      // Use the fitZoom if it is smaller than 1.0 (mobile/tablet), but cap at exactly 1.0 (desktop)
+      const finalZoom = fitZoom < 1.0 ? fitZoom : 1.0
+      
       cameraRef.current = {
         x: 0,
         y: -50, // offset vertically to center relative to cy (rect.height/2 + 100)
-        zoom: 1
+        zoom: Number(finalZoom.toFixed(2))
       }
     }
     window.addEventListener("reset-camera", handleResetCamera)
