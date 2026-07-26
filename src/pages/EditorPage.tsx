@@ -252,19 +252,22 @@ export function EditorPage({ onBack }: { onBack: () => void }) {
           <SidebarButton 
             active={activeTool === "edit" || activeTool === "edit_mesh"} 
             onClick={() => { 
-              setShowEditMenu(!showEditMenu); 
+              if (activeTool === "edit" || activeTool === "edit_mesh") {
+                setShowEditMenu(!showEditMenu); 
+              } else {
+                setActiveTool("edit_mesh");
+                setShowEditMenu(false);
+              }
               setShowShapeMenu(false); 
               setActiveLeftTab(null); 
-              if (activeTool !== "edit" && activeTool !== "edit_mesh") {
-                setActiveTool("edit_mesh");
-              }
             }}
             title="Edit Tools"
             icon={activeTool === "edit" ? SplinePointer : SquareDashedMousePointer}
+            hasSubMenu={true}
           />
           
           {showEditMenu && (
-            <div className="absolute left-10 top-0 ml-2 bg-[#15151a]/80 backdrop-blur-xl border border-white/10 rounded-full flex items-center px-1 py-1 gap-1 z-[75] shadow-2xl animate-in slide-in-from-left-2 fade-in duration-200">
+            <div className="absolute left-12 top-0 bg-[#15151a]/80 backdrop-blur-xl border border-white/10 rounded-full flex items-center px-1 py-1 gap-1 z-[75] shadow-2xl animate-in slide-in-from-left-2 fade-in duration-200">
               <SidebarButton 
                 active={activeTool === "edit"} 
                 onClick={() => { setActiveTool("edit"); setShowEditMenu(false); }}
@@ -291,13 +294,22 @@ export function EditorPage({ onBack }: { onBack: () => void }) {
         <div className="relative">
           <SidebarButton 
             active={activeTool === "shape"} 
-            onClick={() => { setActiveTool("shape"); setShowShapeMenu(!showShapeMenu); setShowEditMenu(false); }}
+            onClick={() => { 
+              if (activeTool === "shape") {
+                setShowShapeMenu(!showShapeMenu); 
+              } else {
+                setActiveTool("shape");
+                setShowShapeMenu(false);
+              }
+              setShowEditMenu(false); 
+            }}
             title="Shapes"
             icon={activeShape === "circle" ? Circle : activeShape === "triangle" ? Triangle : Square}
+            hasSubMenu={true}
           />
           
           {showShapeMenu && (
-            <div className="absolute left-10 top-0 ml-2 bg-[#15151a]/80 backdrop-blur-xl border border-white/10 rounded-full flex items-center px-1 py-1 gap-1 z-[75] shadow-2xl animate-in slide-in-from-left-2 fade-in duration-200">
+            <div className="absolute left-12 top-0 bg-[#15151a]/80 backdrop-blur-xl border border-white/10 rounded-full flex items-center px-1 py-1 gap-1 z-[75] shadow-2xl animate-in slide-in-from-left-2 fade-in duration-200">
               <SidebarButton 
                 active={activeShape === "square"} 
                 onClick={() => { setActiveShape("square"); setActiveTool("shape"); setShowShapeMenu(false); }}

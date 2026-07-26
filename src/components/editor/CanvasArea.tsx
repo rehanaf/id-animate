@@ -441,7 +441,7 @@ export function CanvasArea() {
             ctx.beginPath()
             ctx.moveTo(bone.parent.worldTransform.x, bone.parent.worldTransform.y)
             ctx.lineTo(bone.worldTransform.x, bone.worldTransform.y)
-            ctx.strokeStyle = isSelected ? "rgba(59, 130, 246, 0.9)" : "rgba(255, 255, 255, 0.4)"
+            ctx.strokeStyle = isSelected ? "rgba(249, 115, 22, 0.9)" : "rgba(14, 165, 233, 0.6)"
             ctx.lineWidth = (isSelected ? 5 : 3) / z
             ctx.stroke()
           }
@@ -450,13 +450,12 @@ export function CanvasArea() {
           ctx.arc(bone.worldTransform.x, bone.worldTransform.y, (isSelected ? 6 : 4) / z, 0, Math.PI * 2)
           
           const isRootChild = bone.parent && bone.parent.name === 'root'
-          ctx.fillStyle = isSelected ? "#facc15" : (isRootChild ? "#f97316" : "white") 
+          ctx.fillStyle = isSelected ? "#facc15" : (isRootChild ? "#f97316" : "#0ea5e9") 
           
-          if (isSelected) {
-            ctx.lineWidth = 2 / z
-            ctx.strokeStyle = "#ffffff"
-            ctx.stroke()
-          }
+          // Draw dark border around joints to stand out against any background color
+          ctx.lineWidth = 1.5 / z
+          ctx.strokeStyle = "#1e293b"
+          ctx.stroke()
           ctx.fill()
           
           // Draw Tail for bones with no children (including shapes so they can be rotated!)
@@ -470,7 +469,7 @@ export function CanvasArea() {
               ctx.beginPath()
               ctx.moveTo(bone.parent.worldTransform.x, bone.parent.worldTransform.y)
               ctx.lineTo(bone.worldTransform.x, bone.worldTransform.y)
-              ctx.strokeStyle = "rgba(255, 255, 255, 0.5)"
+              ctx.strokeStyle = "rgba(14, 165, 233, 0.4)"
               ctx.lineWidth = 1.5 / z
               ctx.stroke()
             }
@@ -479,13 +478,16 @@ export function CanvasArea() {
               ctx.beginPath()
               ctx.moveTo(bone.worldTransform.x, bone.worldTransform.y)
               ctx.lineTo(bone.tailWorld.x, bone.tailWorld.y)
-              ctx.strokeStyle = "rgba(255, 255, 255, 0.2)"
+              ctx.strokeStyle = "rgba(14, 165, 233, 0.2)"
               ctx.lineWidth = 2 / z
               ctx.stroke()
               
-              ctx.fillStyle = "#10b981"
+              ctx.fillStyle = "#0ea5e9" // match standard joint color
               ctx.beginPath()
               ctx.arc(bone.tailWorld.x, bone.tailWorld.y, 4 / z, 0, Math.PI * 2)
+              ctx.lineWidth = 1.5 / z
+              ctx.strokeStyle = "#1e293b"
+              ctx.stroke()
               ctx.fill()
             }
           }
