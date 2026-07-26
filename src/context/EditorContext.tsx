@@ -108,8 +108,42 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     const saveWorkspace = async () => {
-      if (skeleton) await AppStorage.setItem("rig_workspace", skeleton.exportToJSON());
-      if (currentAnimation) await AppStorage.setItem("anim_workspace", currentAnimation.exportToJSON());
+      let rig = null;
+      let anim = null;
+      if (skeleton) {
+        rig = skeleton.exportToJSON();
+        await AppStorage.setItem("rig_workspace", rig);
+      }
+      if (currentAnimation) {
+        anim = currentAnimation.exportToJSON();
+        await AppStorage.setItem("anim_workspace", anim);
+      }
+
+      // Save directly to the projects list to survive browser refresh
+      try {
+        const activeProjId = await AppStorage.getItem("active_project_id");
+        if (activeProjId) {
+          const savedProj = await AppStorage.getItem("id_projects");
+          if (savedProj) {
+            let allProjs = JSON.parse(savedProj);
+            let changed = false;
+            for (let i = 0; i < allProjs.length; i++) {
+              if (allProjs[i].id === activeProjId) {
+                const updatedData = allProjs[i].type === 'skeleton' ? rig : { skeleton: JSON.parse(rig || "null"), animation: JSON.parse(anim || "null") };
+                allProjs[i].data = updatedData;
+                allProjs[i].lastModified = Date.now();
+                changed = true;
+                break;
+              }
+            }
+            if (changed) {
+              await AppStorage.setItem("id_projects", JSON.stringify(allProjs));
+            }
+          }
+        }
+      } catch (e) {
+        console.error("Failed to auto-save to projects list:", e);
+      }
     };
     saveWorkspace();
   }, [revision, skeleton, currentAnimation]);

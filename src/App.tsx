@@ -444,12 +444,14 @@ export function App() {
         }
       } catch(e) {}
     }
+    await AppStorage.removeItem("active_project_id");
     setActiveProjectId(null);
     setView("menu");
   }
 
   const handleOpenProject = async (proj: Project) => {
     try {
+      await AppStorage.setItem("active_project_id", proj.id);
       if (proj.type === "skeleton") {
         if (proj.data) {
           const rawData = typeof proj.data === "string" ? proj.data : JSON.stringify(proj.data);
