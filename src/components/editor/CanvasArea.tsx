@@ -447,33 +447,24 @@ export function CanvasArea() {
               ctx.beginPath()
               ctx.moveTo(bone.parent.worldTransform.x, bone.parent.worldTransform.y)
               ctx.lineTo(bone.worldTransform.x, bone.worldTransform.y)
-              ctx.strokeStyle = isSelected ? "rgba(249, 115, 22, 0.9)" : "rgba(14, 165, 233, 0.6)"
-              ctx.lineWidth = (isSelected ? 5 : 3) / z
+              ctx.strokeStyle = "rgba(14, 165, 233, 0.6)"
+              ctx.lineWidth = 3 / z
               ctx.stroke()
             }
 
-            // Connection lines for tail
+            // Tail line for leaf bones
             if (bone.children.length === 0) {
               const rad = bone.worldTransform.rotation * Math.PI / 180
               const tailX = bone.worldTransform.x + Math.sin(rad) * 50
               const tailY = bone.worldTransform.y - Math.cos(rad) * 50
               bone.tailWorld = { x: tailX, y: tailY }
 
-              if (bone.parent && bone.parent.name !== 'root' && activeToolRef.current === "select") {
-                ctx.beginPath()
-                ctx.moveTo(bone.parent.worldTransform.x, bone.parent.worldTransform.y)
-                ctx.lineTo(bone.worldTransform.x, bone.worldTransform.y)
-                ctx.strokeStyle = isSelected ? "rgba(249, 115, 22, 0.9)" : "rgba(14, 165, 233, 0.6)"
-                ctx.lineWidth = (isSelected ? 5 : 3) / z
-                ctx.stroke()
-              }
-
               if (bone.tailWorld && activeToolRef.current === "select") {
                 ctx.beginPath()
                 ctx.moveTo(bone.worldTransform.x, bone.worldTransform.y)
                 ctx.lineTo(bone.tailWorld.x, bone.tailWorld.y)
-                ctx.strokeStyle = "rgba(14, 165, 233, 0.2)"
-                ctx.lineWidth = 2 / z
+                ctx.strokeStyle = "rgba(14, 165, 233, 0.6)"
+                ctx.lineWidth = 3 / z
                 ctx.stroke()
               }
             }
