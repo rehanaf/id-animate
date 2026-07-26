@@ -85,16 +85,16 @@ export function EditorPage({ onBack }: { onBack: () => void }) {
         {/* Transform Tools Bar */}
         <div className="flex bg-[#15151a]/80 backdrop-blur-xl border border-white/10 p-1 rounded-full shadow-2xl gap-0.5">
           <button 
-            onClick={() => { setSelectMode("move"); setActiveTool("select"); }}
-            className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${selectMode === "move" && activeTool === "select" ? "bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.3)]" : "text-gray-400 hover:text-white hover:bg-white/5"}`} 
-            title="Move Tool"
-          ><Move className="w-4 h-4" /></button>
-          
-          <button 
             onClick={() => { setSelectMode("rotate"); setActiveTool("select"); }}
             className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${selectMode === "rotate" && activeTool === "select" ? "bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.3)]" : "text-gray-400 hover:text-white hover:bg-white/5"}`} 
             title="Rotate Tool"
           ><RotateCw className="w-4 h-4" /></button>
+          
+          <button 
+            onClick={() => { setSelectMode("move"); setActiveTool("select"); }}
+            className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${selectMode === "move" && activeTool === "select" ? "bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.3)]" : "text-gray-400 hover:text-white hover:bg-white/5"}`} 
+            title="Move Tool"
+          ><Move className="w-4 h-4" /></button>
           
           <button 
             onClick={() => { setSelectMode("scale"); setActiveTool("select"); }}

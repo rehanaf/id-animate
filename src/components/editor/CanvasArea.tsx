@@ -171,7 +171,22 @@ export function CanvasArea() {
 
     // Listen for fit-to-screen request
     const handleResetCamera = () => {
-      cameraRef.current = { x: 0, y: 0, zoom: 1 }
+      if (!canvas) return
+      const rect = canvas.getBoundingClientRect()
+      const cw = canvasWidth || 800
+      const ch = canvasHeight || 600
+      
+      // Subtract visible padding for UI timeline (approx 260px) and side panels
+      const availableW = rect.width - 80
+      const availableH = rect.height - 260
+      
+      const fitZoom = Math.max(0.1, Math.min(availableW / cw, availableH / ch, 1.5))
+      
+      cameraRef.current = {
+        x: 0,
+        y: -50, // offset vertically to center relative to cy (rect.height/2 + 100)
+        zoom: Number(fitZoom.toFixed(2))
+      }
     }
     window.addEventListener("reset-camera", handleResetCamera)
 
