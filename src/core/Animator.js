@@ -33,6 +33,8 @@ export class Animator {
         const value = this.interpolateTrack(track, time);
         if (track.property === 'length' || track.property === 'sheetIndex') {
           bone[track.property] = value;
+        } else if ((track.property === 'x' || track.property === 'y') && bone.parent && bone.parent.name !== 'root') {
+          bone.localTransform[track.property] = bone.setupTransform[track.property] + value;
         } else {
           bone.localTransform[track.property] = value;
         }

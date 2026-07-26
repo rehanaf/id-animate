@@ -1430,7 +1430,7 @@ export function CanvasArea() {
           // Dragging joint with Rotate tool rotates the parent
           anim.setBonePose(t, bone.parent.name, "rotation", bone.parent.localTransform.rotation, bone.parent.setupTransform.rotation, currentFps, isSmooth)
         } else {
-          // Root or direct child of root translates
+          // Direct child of root translates absolutely
           anim.setBonePose(t, bone.name, "x", bone.localTransform.x, bone.setupTransform.x, currentFps, isSmooth)
           anim.setBonePose(t, bone.name, "y", bone.localTransform.y, bone.setupTransform.y, currentFps, isSmooth)
         }
@@ -1439,8 +1439,17 @@ export function CanvasArea() {
         anim.setBonePose(t, bone.name, "scaleY", bone.localTransform.scaleY, bone.setupTransform.scaleY, currentFps, isSmooth)
       } else {
         // Move Tool translates the bone
-        anim.setBonePose(t, bone.name, "x", bone.localTransform.x, bone.setupTransform.x, currentFps, isSmooth)
-        anim.setBonePose(t, bone.name, "y", bone.localTransform.y, bone.setupTransform.y, currentFps, isSmooth)
+        if (bone.parent && bone.parent.name !== 'root') {
+          // Record translation as offset from setupTransform
+          const offsetX = bone.localTransform.x - bone.setupTransform.x;
+          const offsetY = bone.localTransform.y - bone.setupTransform.y;
+          anim.setBonePose(t, bone.name, "x", offsetX, 0, currentFps, isSmooth)
+          anim.setBonePose(t, bone.name, "y", offsetY, 0, currentFps, isSmooth)
+        } else {
+          // Direct child of root translates absolutely
+          anim.setBonePose(t, bone.name, "x", bone.localTransform.x, bone.setupTransform.x, currentFps, isSmooth)
+          anim.setBonePose(t, bone.name, "y", bone.localTransform.y, bone.setupTransform.y, currentFps, isSmooth)
+        }
       }
     }
   }
