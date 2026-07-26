@@ -1,6 +1,42 @@
 import React from "react"
 import { Copy, Trash2, Eye, EyeOff, ChevronDown, ChevronRight } from "lucide-react"
 import { useEditor } from "@/context/EditorContext"
+import ColorPicker from 'react-best-gradient-color-picker'
+
+const CustomColorPicker = ({ color, onChange, disabled }: any) => {
+  const [open, setOpen] = React.useState(false);
+  const ref = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (ref.current && !ref.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    if (open) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [open]);
+
+  return (
+    <div className="relative" ref={ref}>
+      <div 
+        className={`w-full h-8 rounded-lg cursor-pointer border border-white/10 checkerboard-bg ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+        onClick={() => !disabled && setOpen(!open)}
+      >
+        <div className="w-full h-full rounded-lg" style={{ background: color || '#d1d5db' }} />
+      </div>
+      {open && (
+        <div className="absolute right-0 top-10 z-[100] bg-[#1a1a24] p-3 rounded-xl shadow-2xl border border-white/10 w-[300px]">
+          <ColorPicker value={color || '#d1d5db'} onChange={onChange} />
+        </div>
+      )}
+    </div>
+  );
+}
 
 const AccordionItem = ({ title, children, defaultOpen = true, extra }: any) => {
   const [isOpen, setIsOpen] = React.useState(defaultOpen);
@@ -235,43 +271,6 @@ export function InspectorPanel() {
           </div>
         </div>
       </AccordionItem>
-
-import ColorPicker from 'react-best-gradient-color-picker'
-
-const CustomColorPicker = ({ color, onChange, disabled }: any) => {
-  const [open, setOpen] = React.useState(false);
-  const ref = React.useRef<HTMLDivElement>(null);
-
-  React.useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (ref.current && !ref.current.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    };
-    if (open) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [open]);
-
-  return (
-    <div className="relative" ref={ref}>
-      <div 
-        className={`w-full h-8 rounded-lg cursor-pointer border border-white/10 checkerboard-bg ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-        onClick={() => !disabled && setOpen(!open)}
-      >
-        <div className="w-full h-full rounded-lg" style={{ background: color || '#d1d5db' }} />
-      </div>
-      {open && (
-        <div className="absolute right-0 top-10 z-[100] bg-[#1a1a24] p-3 rounded-xl shadow-2xl border border-white/10 w-[300px]">
-          <ColorPicker value={color || '#d1d5db'} onChange={onChange} />
-        </div>
-      )}
-    </div>
-  );
-}
 
       <AccordionItem title="Asset Settings">
         <div className="flex flex-col gap-1 mb-3">
