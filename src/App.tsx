@@ -445,7 +445,7 @@ export function App() {
         }
       } catch(e) {}
     }
-    await AppStorage.removeItem("active_project_id");
+    await AppStorage.setItem("active_project_id", "");
     setActiveProjectId(null);
     setView("menu");
   }
