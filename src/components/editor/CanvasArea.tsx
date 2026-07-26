@@ -422,50 +422,28 @@ export function CanvasArea() {
         flatBones.forEach(b => drawSingleBoneAsset(b, onionMode))
       }
 
-      const drawBoneRig = (bone: any, onionMode: "none" | "prev" | "next" = "none") => {
-        if (bone.hidden) return;
-        
-        const isSelected = bone.id === selectedBoneIdRef.current && onionMode === "none"
-
-        if (bone.name === 'root') {
-          // Do not draw root joint or lines, just its children
-          bone.children.forEach((c: any) => drawBoneRig(c, onionMode))
-          return
-        }
-
-        // Hide joints and lines if playing, drawing onion skin, or if not in select/edit modes
-        if (!isPlayingRef.current && onionMode === "none" && (activeToolRef.current === "select" || activeToolRef.current === "edit_mesh" || activeToolRef.current === "edit")) {
-          // Draw connection line to parent (only if parent is not root)
-          const z = cameraRef.current.zoom
-          if (bone.parent && bone.parent.name !== 'root') {
-            ctx.beginPath()
-            ctx.moveTo(bone.parent.worldTransform.x, bone.parent.worldTransform.y)
-            ctx.lineTo(bone.worldTransform.x, bone.worldTransform.y)
-            ctx.strokeStyle = isSelected ? "rgba(249, 115, 22, 0.9)" : "rgba(14, 165, 233, 0.6)"
-            ctx.lineWidth = (isSelected ? 5 : 3) / z
-            ctx.stroke()
+      const drawBoneRig = (rootBone: any, onionMode: "none" | "prev" | "next" = "none") => {
+        // Collect all visible bones recursively
+        const flatBones: any[] = []
+        const collect = (b: any) => {
+          if (!b.hidden) {
+            flatBones.push(b)
+            b.children.forEach(collect)
           }
-          
-          ctx.beginPath()
-          ctx.arc(bone.worldTransform.x, bone.worldTransform.y, (isSelected ? 6 : 4) / z, 0, Math.PI * 2)
-          
-          const isRootChild = bone.parent && bone.parent.name === 'root'
-          ctx.fillStyle = isSelected ? "#facc15" : (isRootChild ? "#f97316" : "#0ea5e9") 
-          
-          // Draw dark border around joints to stand out against any background color
-          ctx.lineWidth = 1.5 / z
-          ctx.strokeStyle = "#ffffff"
-          ctx.stroke()
-          ctx.fill()
-          
-          // Draw Tail for bones with no children (including shapes so they can be rotated!)
-          if (bone.children.length === 0) {
-            const rad = bone.worldTransform.rotation * Math.PI / 180
-            const tailX = bone.worldTransform.x + Math.sin(rad) * 50
-            const tailY = bone.worldTransform.y - Math.cos(rad) * 50
-            bone.tailWorld = { x: tailX, y: tailY }
-            
-            if (bone.parent && bone.parent.name !== 'root' && activeToolRef.current === "select") {
+        }
+        collect(rootBone)
+
+        const z = cameraRef.current.zoom
+        const isSelectOrEdit = activeToolRef.current === "select" || activeToolRef.current === "edit_mesh" || activeToolRef.current === "edit"
+
+        // 1. First Pass: Draw all connection lines (so they are drawn underneath all dots)
+        if (!isPlayingRef.current && onionMode === "none" && isSelectOrEdit) {
+          flatBones.forEach(bone => {
+            if (bone.name === 'root') return;
+            const isSelected = bone.id === selectedBoneIdRef.current
+
+            // Draw connection line to parent (only if parent is not root)
+            if (bone.parent && bone.parent.name !== 'root') {
               ctx.beginPath()
               ctx.moveTo(bone.parent.worldTransform.x, bone.parent.worldTransform.y)
               ctx.lineTo(bone.worldTransform.x, bone.worldTransform.y)
@@ -474,15 +452,67 @@ export function CanvasArea() {
               ctx.stroke()
             }
 
-            if (bone.tailWorld && activeToolRef.current === "select") {
-              ctx.beginPath()
-              ctx.moveTo(bone.worldTransform.x, bone.worldTransform.y)
-              ctx.lineTo(bone.tailWorld.x, bone.tailWorld.y)
-              ctx.strokeStyle = "rgba(14, 165, 233, 0.2)"
-              ctx.lineWidth = 2 / z
-              ctx.stroke()
-              
-              ctx.fillStyle = "#0ea5e9" // match standard joint color
+            // Connection lines for tail
+            if (bone.children.length === 0) {
+              const rad = bone.worldTransform.rotation * Math.PI / 180
+              const tailX = bone.worldTransform.x + Math.sin(rad) * 50
+              const tailY = bone.worldTransform.y - Math.cos(rad) * 50
+              bone.tailWorld = { x: tailX, y: tailY }
+
+              if (bone.parent && bone.parent.name !== 'root' && activeToolRef.current === "select") {
+                ctx.beginPath()
+                ctx.moveTo(bone.parent.worldTransform.x, bone.parent.worldTransform.y)
+                ctx.lineTo(bone.worldTransform.x, bone.worldTransform.y)
+                ctx.strokeStyle = isSelected ? "rgba(249, 115, 22, 0.9)" : "rgba(14, 165, 233, 0.6)"
+                ctx.lineWidth = (isSelected ? 5 : 3) / z
+                ctx.stroke()
+              }
+
+              if (bone.tailWorld && activeToolRef.current === "select") {
+                ctx.beginPath()
+                ctx.moveTo(bone.worldTransform.x, bone.worldTransform.y)
+                ctx.lineTo(bone.tailWorld.x, bone.tailWorld.y)
+                ctx.strokeStyle = "rgba(14, 165, 233, 0.2)"
+                ctx.lineWidth = 2 / z
+                ctx.stroke()
+              }
+            }
+          })
+        } else {
+          // Update tail world positions silently for physics/hits when hidden or playing
+          flatBones.forEach(bone => {
+            if (bone.children.length === 0) {
+              const rad = bone.worldTransform.rotation * Math.PI / 180
+              bone.tailWorld = { 
+                x: bone.worldTransform.x + Math.cos(rad) * 50, 
+                y: bone.worldTransform.y + Math.sin(rad) * 50 
+              }
+            }
+          })
+        }
+
+        // 2. Second Pass: Draw all joint dots, tails, mesh outlines, and edit tools on top
+        if (!isPlayingRef.current && onionMode === "none" && isSelectOrEdit) {
+          flatBones.forEach(bone => {
+            if (bone.name === 'root') return;
+            const isSelected = bone.id === selectedBoneIdRef.current
+
+            // Joint Circle
+            ctx.beginPath()
+            ctx.arc(bone.worldTransform.x, bone.worldTransform.y, (isSelected ? 6 : 4) / z, 0, Math.PI * 2)
+
+            const isRootChild = bone.parent && bone.parent.name === 'root'
+            ctx.fillStyle = isSelected ? "#facc15" : (isRootChild ? "#f97316" : "#0ea5e9") 
+
+            // White border outline
+            ctx.lineWidth = 1.5 / z
+            ctx.strokeStyle = "#ffffff"
+            ctx.stroke()
+            ctx.fill()
+
+            // Tail helper dot
+            if (bone.children.length === 0 && bone.tailWorld && activeToolRef.current === "select") {
+              ctx.fillStyle = "#0ea5e9"
               ctx.beginPath()
               ctx.arc(bone.tailWorld.x, bone.tailWorld.y, 4 / z, 0, Math.PI * 2)
               ctx.lineWidth = 1.5 / z
@@ -490,134 +520,121 @@ export function CanvasArea() {
               ctx.stroke()
               ctx.fill()
             }
-          }
-        } else {
-          // Update tail world position silently for hit detection even if hidden
-          if (bone.children.length === 0) {
-            const rad = bone.worldTransform.rotation * Math.PI / 180
-            bone.tailWorld = { 
-              x: bone.worldTransform.x + Math.cos(rad) * 50, 
-              y: bone.worldTransform.y + Math.sin(rad) * 50 
-            }
-          }
-        }
-        
-        // Draw 8-point bounding box for edit_mesh
-        if (isSelected && activeToolRef.current === "edit_mesh" && !isPlayingRef.current && onionMode === "none") {
-          let actW = 100, actH = 100
-          if (bone.assetType === "image" && bone.imageObj && bone.imageObj.complete) {
-            const ratio = bone.imageObj.width / bone.imageObj.height
-            if (bone.assetWidth === "auto" && bone.assetHeight === "auto") {
-              actW = bone.imageObj.width; actH = bone.imageObj.height
-            } else if (bone.assetWidth === "auto") {
-              actH = Number(bone.assetHeight); actW = actH * ratio
-            } else if (bone.assetHeight === "auto") {
-              actW = Number(bone.assetWidth); actH = actW / ratio
-            } else {
-              actW = Number(bone.assetWidth || 100); actH = Number(bone.assetHeight || 100)
-            }
-          } else if (bone.assetType === "path" && bone.pathPoints && bone.pathPoints.length > 0) {
-            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-            for (const p of bone.pathPoints) {
-              if (p.x < minX) minX = p.x;
-              if (p.y < minY) minY = p.y;
-              if (p.x > maxX) maxX = p.x;
-              if (p.y > maxY) maxY = p.y;
-            }
-            actW = Math.max(10, maxX - minX);
-            actH = Math.max(10, maxY - minY);
-          } else {
-            if (bone.assetWidth === "auto" && bone.assetHeight === "auto") {
-              actW = 100; actH = 100
-            } else if (bone.assetWidth === "auto") {
-              actH = Number(bone.assetHeight); actW = actH
-            } else if (bone.assetHeight === "auto") {
-              actW = Number(bone.assetWidth); actH = actW
-            } else {
-              actW = Number(bone.assetWidth || 100); actH = Number(bone.assetHeight || 100)
-            }
-          }
-          
-          let boxX = -actW/2, boxY = -actH/2;
-          if (bone.assetType === "path" && bone.pathPoints && bone.pathPoints.length > 0) {
-            let minX = Infinity, minY = Infinity;
-            for (const p of bone.pathPoints) {
-              if (p.x < minX) minX = p.x;
-              if (p.y < minY) minY = p.y;
-            }
-            boxX = minX; boxY = minY;
-          }
-          
-          const z = cameraRef.current.zoom
-          ctx.save()
-          ctx.translate(bone.worldTransform.x, bone.worldTransform.y)
-          ctx.rotate(bone.worldTransform.rotation * Math.PI / 180)
-          ctx.scale(bone.worldTransform.scaleX, bone.worldTransform.scaleY)
-          
-          if (bone.assetOffset) ctx.translate(bone.assetOffset.x, bone.assetOffset.y)
-          if (bone.assetRotation) ctx.rotate(bone.assetRotation * Math.PI / 180)
-          
-          ctx.strokeStyle = "#3b82f6"
-          ctx.lineWidth = 1.5 / z
-          ctx.setLineDash([5 / z, 5 / z])
-          ctx.strokeRect(boxX, boxY, actW, actH)
-          
-          // Draw antenna line
-          ctx.beginPath()
-          ctx.moveTo(boxX + actW/2, boxY)
-          ctx.lineTo(boxX + actW/2, boxY - 30/z)
-          ctx.stroke()
-          
-          ctx.setLineDash([])
-          
-          ctx.fillStyle = "#ffffff"
-          ctx.strokeStyle = "#3b82f6"
-          ctx.lineWidth = 1.5 / z
-          const pts = [
-            {x: boxX, y: boxY}, {x: boxX + actW/2, y: boxY}, {x: boxX + actW, y: boxY},
-            {x: boxX, y: boxY + actH/2},                          {x: boxX + actW, y: boxY + actH/2},
-            {x: boxX, y: boxY + actH},  {x: boxX + actW/2, y: boxY + actH}, {x: boxX + actW, y: boxY + actH},
-            {x: boxX + actW/2, y: boxY - 30/z, isAntenna: true} // 9th point
-          ]
-          for (const p of pts) {
-            ctx.beginPath()
-            if ((p as any).isAntenna) {
-              ctx.arc(p.x, p.y, 4/z, 0, Math.PI * 2)
-            } else {
-              ctx.rect(p.x - 4/z, p.y - 4/z, 8/z, 8/z)
-            }
-            ctx.fill()
-            ctx.stroke()
-          }
-          ctx.restore()
-        }
 
-        // Draw path vertices for edit
-        if (isSelected && activeToolRef.current === "edit" && !isPlayingRef.current && onionMode === "none" && bone.assetType === "path" && bone.pathPoints) {
-          const z = cameraRef.current.zoom
-          ctx.save()
-          ctx.translate(bone.worldTransform.x, bone.worldTransform.y)
-          ctx.rotate(bone.worldTransform.rotation * Math.PI / 180)
-          ctx.scale(bone.worldTransform.scaleX, bone.worldTransform.scaleY)
-          
-          if (bone.assetOffset) ctx.translate(bone.assetOffset.x, bone.assetOffset.y)
-          if (bone.assetRotation) ctx.rotate(bone.assetRotation * Math.PI / 180)
-          
-          ctx.fillStyle = "#ffffff"
-          ctx.strokeStyle = "#ef4444" // red to differentiate from blue mesh box
-          ctx.lineWidth = 1.5 / z
-          
-          for (let i = 0; i < bone.pathPoints.length; i++) {
-            const pt = bone.pathPoints[i]
-            ctx.beginPath()
-            ctx.arc(pt.x, pt.y, 4 / z, 0, Math.PI * 2)
-            ctx.fill()
-            ctx.stroke()
-          }
-          ctx.restore()
+            // Draw bounding box for edit_mesh (drawn on top of joints)
+            if (isSelected && activeToolRef.current === "edit_mesh") {
+              let actW = 100, actH = 100
+              if (bone.assetType === "image" && bone.imageObj && bone.imageObj.complete) {
+                const ratio = bone.imageObj.width / bone.imageObj.height
+                if (bone.assetWidth === "auto" && bone.assetHeight === "auto") {
+                  actW = bone.imageObj.width; actH = bone.imageObj.height
+                } else if (bone.assetWidth === "auto") {
+                  actH = Number(bone.assetHeight); actW = actH * ratio
+                } else if (bone.assetHeight === "auto") {
+                  actW = Number(bone.assetWidth); actH = actW / ratio
+                } else {
+                  actW = Number(bone.assetWidth || 100); actH = Number(bone.assetHeight || 100)
+                }
+              } else if (bone.assetType === "path" && bone.pathPoints && bone.pathPoints.length > 0) {
+                let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                for (const p of bone.pathPoints) {
+                  if (p.x < minX) minX = p.x;
+                  if (p.y < minY) minY = p.y;
+                  if (p.x > maxX) maxX = p.x;
+                  if (p.y > maxY) maxY = p.y;
+                }
+                actW = Math.max(10, maxX - minX);
+                actH = Math.max(10, maxY - minY);
+              } else {
+                if (bone.assetWidth === "auto" && bone.assetHeight === "auto") {
+                  actW = 100; actH = 100
+                } else if (bone.assetWidth === "auto") {
+                  actH = Number(bone.assetHeight); actW = actH
+                } else if (bone.assetHeight === "auto") {
+                  actW = Number(bone.assetWidth); actH = actW
+                } else {
+                  actW = Number(bone.assetWidth || 100); actH = Number(bone.assetHeight || 100)
+                }
+              }
+
+              let boxX = -actW/2, boxY = -actH/2;
+              if (bone.assetType === "path" && bone.pathPoints && bone.pathPoints.length > 0) {
+                let minX = Infinity, minY = Infinity;
+                for (const p of bone.pathPoints) {
+                  if (p.x < minX) minX = p.x;
+                  if (p.y < minY) minY = p.y;
+                }
+                boxX = minX; boxY = minY;
+              }
+
+              ctx.save()
+              ctx.translate(bone.worldTransform.x, bone.worldTransform.y)
+              ctx.rotate(bone.worldTransform.rotation * Math.PI / 180)
+              ctx.scale(bone.worldTransform.scaleX, bone.worldTransform.scaleY)
+
+              if (bone.assetOffset) ctx.translate(bone.assetOffset.x, bone.assetOffset.y)
+              if (bone.assetRotation) ctx.rotate(bone.assetRotation * Math.PI / 180)
+
+              ctx.strokeStyle = "#3b82f6"
+              ctx.lineWidth = 1.5 / z
+              ctx.setLineDash([5 / z, 5 / z])
+              ctx.strokeRect(boxX, boxY, actW, actH)
+
+              // Draw antenna line
+              ctx.beginPath()
+              ctx.moveTo(boxX + actW/2, boxY)
+              ctx.lineTo(boxX + actW/2, boxY - 30/z)
+              ctx.stroke()
+
+              ctx.setLineDash([])
+
+              ctx.fillStyle = "#ffffff"
+              ctx.strokeStyle = "#3b82f6"
+              ctx.lineWidth = 1.5 / z
+              const pts = [
+                {x: boxX, y: boxY}, {x: boxX + actW/2, y: boxY}, {x: boxX + actW, y: boxY},
+                {x: boxX, y: boxY + actH/2},                          {x: boxX + actW, y: boxY + actH/2},
+                {x: boxX, y: boxY + actH},  {x: boxX + actW/2, y: boxY + actH}, {x: boxX + actW, y: boxY + actH},
+                {x: boxX + actW/2, y: boxY - 30/z, isAntenna: true} // 9th point
+              ]
+              for (const p of pts) {
+                ctx.beginPath()
+                if ((p as any).isAntenna) {
+                  ctx.arc(p.x, p.y, 4/z, 0, Math.PI * 2)
+                } else {
+                  ctx.rect(p.x - 4/z, p.y - 4/z, 8/z, 8/z)
+                }
+                ctx.fill()
+                ctx.stroke()
+              }
+              ctx.restore()
+            }
+
+            // Draw path vertices for edit (drawn on top of joints)
+            if (isSelected && activeToolRef.current === "edit" && bone.assetType === "path" && bone.pathPoints) {
+              ctx.save()
+              ctx.translate(bone.worldTransform.x, bone.worldTransform.y)
+              ctx.rotate(bone.worldTransform.rotation * Math.PI / 180)
+              ctx.scale(bone.worldTransform.scaleX, bone.worldTransform.scaleY)
+
+              if (bone.assetOffset) ctx.translate(bone.assetOffset.x, bone.assetOffset.y)
+              if (bone.assetRotation) ctx.rotate(bone.assetRotation * Math.PI / 180)
+
+              ctx.fillStyle = "#ffffff"
+              ctx.strokeStyle = "#ef4444" // red to differentiate from blue mesh box
+              ctx.lineWidth = 1.5 / z
+
+              for (let i = 0; i < bone.pathPoints.length; i++) {
+                const pt = bone.pathPoints[i]
+                ctx.beginPath()
+                ctx.arc(pt.x, pt.y, 4 / z, 0, Math.PI * 2)
+                ctx.fill()
+                ctx.stroke()
+              }
+              ctx.restore()
+            }
+          })
         }
-        
-        bone.children.forEach((c: any) => drawBoneRig(c, onionMode))
       }
       
       // Draw Onion Skins if active and in Animate mode
