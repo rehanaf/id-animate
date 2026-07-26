@@ -22,15 +22,14 @@ export function SidebarButton({
     <Button 
       variant={active ? "default" : "ghost"} 
       size="icon" 
-      className={`relative w-8 h-8 rounded-full transition-all duration-300 ${active ? `${activeColorClass} text-white shadow-lg` : "text-gray-400 hover:text-white hover:bg-white/10"}`} 
+      className={`group relative w-8 h-8 rounded-full transition-all duration-300 ${active ? `${activeColorClass} text-white shadow-lg` : "text-gray-400 hover:text-white hover:bg-white/10"}`} 
       title={title}
       onClick={onClick}
     >
       <Icon className="w-4 h-4" />
       {hasSubMenu && (
         <div 
-          className="absolute bottom-0.5 right-0.5 w-0 h-0 border-t-[2.5px] border-t-transparent border-l-[2.5px] border-l-transparent border-r-[2.5px] border-r-gray-400 group-hover:border-r-white border-b-[2.5px] border-b-gray-400 group-hover:border-b-white transition-colors"
-          style={{ borderStyle: "solid" }}
+          className={`absolute top-[2px] right-[2px] w-2 h-2 rounded-full border border-[#15151a] transition-colors ${active ? "bg-white" : "bg-gray-400 group-hover:bg-white"}`}
         />
       )}
     </Button>
