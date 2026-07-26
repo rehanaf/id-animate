@@ -29,7 +29,7 @@ export function SidebarButton({
       <Icon className="w-4 h-4" />
       {hasSubMenu && (
         <div 
-          className="absolute bottom-1 right-1 w-0 h-0 border-t-[4px] border-t-transparent border-l-[4px] border-l-transparent border-r-[4px] border-r-gray-400 group-hover:border-r-white border-b-[4px] border-b-gray-400 group-hover:border-b-white transition-colors"
+          className="absolute bottom-0.5 right-0.5 w-0 h-0 border-t-[2.5px] border-t-transparent border-l-[2.5px] border-l-transparent border-r-[2.5px] border-r-gray-400 group-hover:border-r-white border-b-[2.5px] border-b-gray-400 group-hover:border-b-white transition-colors"
           style={{ borderStyle: "solid" }}
         />
       )}

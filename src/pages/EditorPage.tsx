@@ -267,7 +267,7 @@ export function EditorPage({ onBack }: { onBack: () => void }) {
           />
           
           {showEditMenu && (
-            <div className="absolute left-12 top-0 bg-[#15151a]/80 backdrop-blur-xl border border-white/10 rounded-full flex items-center px-1 py-1 gap-1 z-[75] shadow-2xl animate-in slide-in-from-left-2 fade-in duration-200">
+            <div className="absolute left-10 top-0 bg-[#15151a]/80 backdrop-blur-xl border border-white/10 rounded-full flex items-center px-1 py-1 gap-1 z-[75] shadow-2xl animate-in slide-in-from-left-2 fade-in duration-200">
               <SidebarButton 
                 active={activeTool === "edit"} 
                 onClick={() => { setActiveTool("edit"); setShowEditMenu(false); }}
@@ -309,7 +309,7 @@ export function EditorPage({ onBack }: { onBack: () => void }) {
           />
           
           {showShapeMenu && (
-            <div className="absolute left-12 top-0 bg-[#15151a]/80 backdrop-blur-xl border border-white/10 rounded-full flex items-center px-1 py-1 gap-1 z-[75] shadow-2xl animate-in slide-in-from-left-2 fade-in duration-200">
+            <div className="absolute left-10 top-0 bg-[#15151a]/80 backdrop-blur-xl border border-white/10 rounded-full flex items-center px-1 py-1 gap-1 z-[75] shadow-2xl animate-in slide-in-from-left-2 fade-in duration-200">
               <SidebarButton 
                 active={activeShape === "square"} 
                 onClick={() => { setActiveShape("square"); setActiveTool("shape"); setShowShapeMenu(false); }}

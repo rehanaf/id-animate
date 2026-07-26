@@ -454,7 +454,7 @@ export function CanvasArea() {
           
           // Draw dark border around joints to stand out against any background color
           ctx.lineWidth = 1.5 / z
-          ctx.strokeStyle = "#1e293b"
+          ctx.strokeStyle = "#ffffff"
           ctx.stroke()
           ctx.fill()
           
@@ -469,8 +469,8 @@ export function CanvasArea() {
               ctx.beginPath()
               ctx.moveTo(bone.parent.worldTransform.x, bone.parent.worldTransform.y)
               ctx.lineTo(bone.worldTransform.x, bone.worldTransform.y)
-              ctx.strokeStyle = "rgba(14, 165, 233, 0.4)"
-              ctx.lineWidth = 1.5 / z
+              ctx.strokeStyle = isSelected ? "rgba(249, 115, 22, 0.9)" : "rgba(14, 165, 233, 0.6)"
+              ctx.lineWidth = (isSelected ? 5 : 3) / z
               ctx.stroke()
             }
 
@@ -486,7 +486,7 @@ export function CanvasArea() {
               ctx.beginPath()
               ctx.arc(bone.tailWorld.x, bone.tailWorld.y, 4 / z, 0, Math.PI * 2)
               ctx.lineWidth = 1.5 / z
-              ctx.strokeStyle = "#1e293b"
+              ctx.strokeStyle = "#ffffff"
               ctx.stroke()
               ctx.fill()
             }
