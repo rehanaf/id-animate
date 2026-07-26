@@ -176,17 +176,20 @@ export function CanvasArea() {
       const cw = canvasWidth || 800
       const ch = canvasHeight || 600
       
-      // Subtract visible padding for UI panels and timeline
-      const availableW = rect.width - 40
-      const availableH = rect.height - 240
+      // Dynamic padding: use less padding on smaller screens
+      const paddingW = rect.width < 500 ? 20 : 40
+      const paddingH = rect.height < 500 ? 100 : 240
+      
+      const availableW = Math.max(100, rect.width - paddingW)
+      const availableH = Math.max(100, rect.height - paddingH)
       
       const fitZoom = Math.min(availableW / cw, availableH / ch)
-      // Use the fitZoom if it is smaller than 1.0 (mobile/tablet), but cap at exactly 1.0 (desktop)
-      const finalZoom = fitZoom < 1.0 ? fitZoom : 1.0
+      // Enforce a minimum zoom of 35% (0.35) so it doesn't become microscopic, and cap at 100% (1.0) on desktop
+      const finalZoom = Math.max(0.35, fitZoom < 1.0 ? fitZoom : 1.0)
       
       cameraRef.current = {
         x: 0,
-        y: -50, // offset vertically to center relative to cy (rect.height/2 + 100)
+        y: rect.height < 500 ? -20 : -50, // offset vertically to center relative to cy (rect.height/2 + 100)
         zoom: Number(finalZoom.toFixed(2))
       }
     }
