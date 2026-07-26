@@ -4,6 +4,7 @@ export class Animator {
     this.currentAnimation = null;
     this.currentTime = 0;
     this.isPlaying = false;
+    this.stepMode = true; // true = hold/step, false = linear interpolation
   }
 
   play(animation) {
@@ -54,6 +55,14 @@ export class Animator {
     if (keys.length === 0) return 0;
     if (keys.length === 1 || time <= keys[0].time) return keys[0].value;
     if (time >= keys[keys.length - 1].time) return keys[keys.length - 1].value;
+
+    // Step/Hold Interpolation: return most recent keyframe value
+    if (this.stepMode) {
+      for (let i = keys.length - 1; i >= 0; i--) {
+        if (keys[i].time <= time + 0.001) return keys[i].value;
+      }
+      return keys[0].value;
+    }
 
     // Cari dua keyframe yang mengapit waktu saat ini
     for (let i = 0; i < keys.length - 1; i++) {

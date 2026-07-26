@@ -43,6 +43,8 @@ interface EditorContextType {
   redo: () => void;
   canUndo: boolean;
   canRedo: boolean;
+  smoothInterpolation: boolean;
+  setSmoothInterpolation: (enabled: boolean) => void;
   handleExportZip: () => Promise<void>;
 }
 
@@ -65,6 +67,7 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
   const [canvasWidth, setCanvasWidth] = useState(800);
   const [canvasHeight, setCanvasHeight] = useState(600);
   const [revision, setRevision] = useState(0);
+  const [smoothInterpolation, setSmoothInterpolation] = useState(false);
 
   // Undo / Redo History State
   const [history, setHistory] = useState<string[]>([]);
@@ -257,6 +260,7 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
       redo,
       canUndo: historyIndex > 0,
       canRedo: historyIndex < history.length - 1,
+      smoothInterpolation, setSmoothInterpolation,
       handleExportZip
     }}>
       {children}

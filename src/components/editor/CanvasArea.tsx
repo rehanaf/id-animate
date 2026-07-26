@@ -6,7 +6,7 @@ import { Animator } from "@/core/Animator.js"
 
 export function CanvasArea() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const { skeleton, setSkeleton, selectedBoneId, setSelectedBoneId, isPlaying, setIsPlaying, editorMode, currentAnimation, currentTime, setCurrentTime, duration, activeTool, selectMode, activeShape, pushHistory, canvasWidth, canvasHeight, fps, onionPrev, onionNext, forceUpdate } = useEditor()
+  const { skeleton, setSkeleton, selectedBoneId, setSelectedBoneId, isPlaying, setIsPlaying, editorMode, currentAnimation, currentTime, setCurrentTime, duration, activeTool, selectMode, activeShape, pushHistory, canvasWidth, canvasHeight, fps, onionPrev, onionNext, forceUpdate, smoothInterpolation } = useEditor()
   
   // High-frequency drag state via Ref to avoid render stuttering
   const dragState = useRef({ isDragging: false, bone: null as any, isTail: false, isAssetDrag: false, isPanning: false, startPanX: 0, startPanY: 0, startCamX: 0, startCamY: 0, startX: 0, startY: 0, startLocalX: 0, startLocalY: 0, startAssetOffX: 0, startAssetOffY: 0 })
@@ -157,6 +157,11 @@ export function CanvasArea() {
     onionNextRef.current = onionNext
   }, [onionNext])
 
+  const smoothInterpRef = useRef(smoothInterpolation)
+  useEffect(() => {
+    smoothInterpRef.current = smoothInterpolation
+  }, [smoothInterpolation])
+
   useEffect(() => {
     let animFrame: number
     const canvas = canvasRef.current
@@ -210,6 +215,7 @@ export function CanvasArea() {
       if (!currentSkel) return
 
       animator.skeleton = currentSkel
+      animator.stepMode = !smoothInterpRef.current
 
       const dt = (now - lastTime) / 1000 // delta in seconds
       lastTime = now

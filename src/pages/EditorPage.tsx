@@ -1,6 +1,6 @@
 import React, { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { ChevronLeft, ListTree, MousePointer2, SplinePointer, SquareDashedMousePointer, PenTool, Circle, Square, Triangle, BoxSelect, SlidersHorizontal, Layers, Plus, Minus, Video, Play, Pause, ChevronRight, Settings, Undo2, Redo2, Download, RotateCw, Move, Maximize, MoveDiagonal, MoreVertical, Save, Bone as BoneIcon } from "lucide-react"
+import { ChevronLeft, ListTree, MousePointer2, SplinePointer, SquareDashedMousePointer, PenTool, Circle, Square, Triangle, BoxSelect, SlidersHorizontal, Layers, Plus, Minus, Video, Play, Pause, ChevronRight, Settings, Undo2, Redo2, Download, RotateCw, Move, Maximize, MoveDiagonal, MoreVertical, Save, Bone as BoneIcon, Spline } from "lucide-react"
 
 import { useEditor } from "@/context/EditorContext"
 import { CanvasArea } from "@/components/editor/CanvasArea"
@@ -26,6 +26,7 @@ export function EditorPage({ onBack }: { onBack: () => void }) {
     duration, setDuration, fps,
     isPlaying, setIsPlaying,
     currentAnimation, forceUpdate,
+    smoothInterpolation, setSmoothInterpolation,
     undo, redo, canUndo, canRedo,
     handleExportZip
   } = useEditor()
@@ -187,6 +188,14 @@ export function EditorPage({ onBack }: { onBack: () => void }) {
           >
             {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
           </button>
+
+          <div className="w-px h-5 bg-white/10" />
+
+          <button 
+            className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${smoothInterpolation ? "bg-cyan-600 text-white shadow-[0_0_12px_rgba(6,182,212,0.4)]" : "text-gray-500 hover:text-gray-300 hover:bg-white/5"}`}
+            title={smoothInterpolation ? "Interpolation: Smooth (Linear)" : "Interpolation: Step (Hold)"}
+            onClick={() => setSmoothInterpolation(!smoothInterpolation)}
+          ><Spline className="w-4 h-4" /></button>
         </div>
       </div>
 
