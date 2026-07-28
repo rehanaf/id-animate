@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
-import { Settings, Plus, Video, Bone, FolderPlus, Folder, FolderOpen, ArrowLeft, MoreVertical, Copy, Pencil, Trash2, Upload, Shapes } from "lucide-react"
+import { Settings, Plus, Video, FolderPlus, Folder, FolderOpen, ArrowLeft, MoreVertical, Copy, Pencil, Trash2, Upload, Shapes } from "lucide-react"
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from "@/components/ui/drawer"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import JSZip from "jszip"
@@ -10,22 +10,19 @@ import { Capacitor } from '@capacitor/core'
 import { ScreenOrientation } from '@capacitor/screen-orientation'
 import { StatusBar } from '@capacitor/status-bar'
 
-import { EditorProvider } from "@/context/EditorContext"
-import { EditorPage } from "@/pages/EditorPage"
 import { FigureEditorProvider } from "@/context/FigureEditorContext"
 import { FigureEditorPage } from "@/pages/FigureEditorPage"
-import { generateProjectThumbnail } from "@/core/ThumbnailGenerator"
 
 export interface ProjectGroup {
   id: string
   name: string
-  type: "animation" | "skeleton" | "figure"
+  type: "figure"
 }
 
 export interface Project {
   id: string
   name: string
-  type: "animation" | "skeleton" | "figure"
+  type: "figure"
   canvasWidth: number
   canvasHeight: number
   fps: number
@@ -36,8 +33,8 @@ export interface Project {
 }
 
 export function App() {
-  const [view, setView] = useState<"menu" | "editor" | "figure-editor">("menu")
-  const [activeTab, setActiveTab] = useState<"animation" | "skeleton" | "figure">("animation")
+  const [view, setView] = useState<"menu" | "figure-editor">("menu")
+  const [activeTab, setActiveTab] = useState<"figure">("figure")
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isClearDataConfirmOpen, setIsClearDataConfirmOpen] = useState(false)
   const [activeGroupId, setActiveGroupId] = useState<string | null>(null)
@@ -328,25 +325,19 @@ export function App() {
   }
 
   const handleCreateProject = () => {
-    const projType = activeTab === "figure" ? "figure" : activeTab
     const newProj: Project = {
       id: Date.now().toString(),
-      name: newProjName || `New ${projType.charAt(0).toUpperCase() + projType.slice(1)}`,
-      type: projType as "animation" | "skeleton" | "figure",
+      name: newProjName || "New Figure",
+      type: "figure",
       canvasWidth: Number(newProjWidth) || 800,
       canvasHeight: Number(newProjHeight) || 600,
       fps: Number(newProjFps) || 8,
       lastModified: Date.now(),
       data: null,
-      groupId: activeGroupId // Add to current group if inside one
+      groupId: activeGroupId
     }
     saveProjects([newProj, ...projects])
-    if (projType === "figure") {
-      handleOpenProject(newProj)
-    } else {
-      setIsDrawerOpen(false)
-      setNewProjName("")
-    }
+    handleOpenProject(newProj)
   }
 
   const handleCreateGroup = () => {
@@ -430,28 +421,14 @@ export function App() {
     if (activeProjectId) {
       try {
         const figData = await AppStorage.getItem("figure_workspace");
-        const rigData = await AppStorage.getItem("rig_workspace");
-        const animData = await AppStorage.getItem("anim_workspace");
-        
         const savedProj = await AppStorage.getItem("id_projects");
         if (savedProj) {
           let allProjs = JSON.parse(savedProj);
           for (let i = 0; i < allProjs.length; i++) {
             let p = allProjs[i];
             if (p.id === activeProjectId) {
-              let updatedData;
-              if (p.type === 'figure') {
-                updatedData = figData;
-              } else if (p.type === 'skeleton') {
-                updatedData = rigData;
-              } else {
-                updatedData = { skeleton: rigData, animation: animData };
-              }
-              p.data = updatedData;
+              p.data = figData;
               p.lastModified = Date.now();
-              try {
-                 p.thumbnail = await generateProjectThumbnail(p);
-              } catch(e) {}
               allProjs[i] = p;
             }
           }
@@ -468,54 +445,16 @@ export function App() {
   const handleOpenProject = async (proj: Project) => {
     try {
       await AppStorage.setItem("active_project_id", proj.id);
-      if (proj.type === "figure") {
-        if (proj.data) {
-          const rawData = typeof proj.data === "string" ? proj.data : JSON.stringify(proj.data);
-          await AppStorage.setItem("figure_workspace", rawData);
-        } else {
-          await AppStorage.setItem("figure_workspace", "");
-        }
-        setActiveProjectId(proj.id);
-        setView("figure-editor");
-        return;
-      }
-      if (proj.type === "skeleton") {
-        if (proj.data) {
-          const rawData = typeof proj.data === "string" ? proj.data : JSON.stringify(proj.data);
-          await AppStorage.setItem("rig_workspace", rawData);
-        } else {
-          await AppStorage.setItem("rig_workspace", "");
-        }
-        await AppStorage.setItem("anim_workspace", "");
+      if (proj.data) {
+        const rawData = typeof proj.data === "string" ? proj.data : JSON.stringify(proj.data);
+        await AppStorage.setItem("figure_workspace", rawData);
       } else {
-        if (proj.data) {
-          if (proj.data.skeleton) {
-            await AppStorage.setItem("rig_workspace", typeof proj.data.skeleton === "string" ? proj.data.skeleton : JSON.stringify(proj.data.skeleton));
-          } else {
-             await AppStorage.setItem("rig_workspace", "");
-          }
-          if (proj.data.animation) {
-             await AppStorage.setItem("anim_workspace", typeof proj.data.animation === "string" ? proj.data.animation : JSON.stringify(proj.data.animation));
-          } else {
-             await AppStorage.setItem("anim_workspace", "");
-          }
-        } else {
-          await AppStorage.setItem("rig_workspace", "");
-          await AppStorage.setItem("anim_workspace", "");
-        }
+        await AppStorage.setItem("figure_workspace", "");
       }
       setActiveProjectId(proj.id);
-      setView("editor");
+      setView("figure-editor");
     } catch(e) {}
   };
-
-  if (view === "editor") {
-    return (
-      <EditorProvider>
-        <EditorPage onBack={handleBack} />
-      </EditorProvider>
-    )
-  }
 
   if (view === "figure-editor") {
     return (
@@ -525,8 +464,8 @@ export function App() {
     )
   }
 
-  const currentTabProjects = projects.filter(p => p.type === activeTab)
-  const currentTabGroups = groups.filter(g => g.type === activeTab)
+  const currentTabProjects = projects.filter(p => p.type === "figure")
+  const currentTabGroups = groups.filter(g => g.type === "figure")
 
   const renderCard = (proj: Project) => (
     <div 
@@ -546,7 +485,7 @@ export function App() {
              <>
                <div className="absolute inset-0 opacity-20 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-gray-600 via-transparent to-transparent"></div>
                <div className="absolute inset-0 flex items-center justify-center">
-                  {proj.type === "animation" ? <Video className="w-10 h-10 text-blue-500 opacity-20 group-hover:opacity-40 group-hover:scale-110 transition-all duration-500" /> : proj.type === "figure" ? <Shapes className="w-10 h-10 text-green-500 opacity-20 group-hover:opacity-40 group-hover:scale-110 transition-all duration-500" /> : <Bone className="w-10 h-10 text-purple-500 opacity-20 group-hover:opacity-40 group-hover:scale-110 transition-all duration-500" />}
+                  {proj.type === "figure" ? <Shapes className="w-10 h-10 text-green-500 opacity-20 group-hover:opacity-40 group-hover:scale-110 transition-all duration-500" /> : <Video className="w-10 h-10 text-blue-500 opacity-20 group-hover:opacity-40 group-hover:scale-110 transition-all duration-500" />}
                </div>
              </>
            )}
@@ -678,25 +617,11 @@ export function App() {
         {/* Sticky Tabs */}
         <div className="sticky top-0 z-30 flex items-center justify-center gap-2 p-3 bg-[#0a0a0f]/80 backdrop-blur-xl border-y border-[#1a1a24] shadow-md w-full shrink-0">
           <Button 
-            variant={activeTab === "animation" ? "default" : "ghost"} 
-            className={`rounded-full px-5 transition-all font-medium text-sm text-white ${activeTab === "animation" ? "bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-900/50" : "hover:bg-white/10 text-white"}`}
-            onClick={() => setActiveTab("animation")}
-          >
-            <Video className="w-4 h-4 mr-2" /> Animation
-          </Button>
-          <Button 
-            variant={activeTab === "skeleton" ? "default" : "ghost"} 
-            className={`rounded-full px-5 transition-all font-medium text-sm text-white ${activeTab === "skeleton" ? "bg-purple-600 hover:bg-purple-700 shadow-md shadow-purple-900/50" : "hover:bg-white/10 text-white"}`}
-            onClick={() => setActiveTab("skeleton")}
-          >
-            <Bone className="w-4 h-4 mr-2" /> Skeleton
-          </Button>
-          <Button 
-            variant={activeTab === "figure" ? "default" : "ghost"} 
-            className={`rounded-full px-5 transition-all font-medium text-sm text-white ${activeTab === "figure" ? "bg-green-600 hover:bg-green-700 shadow-md shadow-green-900/50" : "hover:bg-white/10 text-white"}`}
+            variant="default"
+            className="rounded-full px-5 transition-all font-medium text-sm text-white bg-green-600 hover:bg-green-700 shadow-md shadow-green-900/50"
             onClick={() => setActiveTab("figure")}
           >
-            <Shapes className="w-4 h-4 mr-2" /> Figure
+            <Shapes className="w-4 h-4 mr-2" /> Animation (Figure)
           </Button>
         </div>
 
@@ -709,7 +634,7 @@ export function App() {
                 {/* Root View */}
                 <div className="flex items-center justify-between mb-8">
                    <h2 className="text-xl font-bold text-gray-200">
-                      {activeTab === "animation" ? "Animations" : activeTab === "skeleton" ? "Skeletons" : "Figures"}
+                      Animations (Figure)
                    </h2>
                    <Button 
                      variant="outline" 
@@ -726,9 +651,9 @@ export function App() {
                   {currentTabProjects.filter(p => !p.groupId).map(renderCard)}
                 </div>
 
-                {currentTabGroups.length === 0 && currentTabProjects.filter(p => !p.groupId).length === 0 && (
+                {currentTabProjects.length === 0 && (
                   <div className="flex flex-col items-center justify-center h-48 text-gray-600 border border-dashed border-[#2a2a35] rounded-2xl mt-4">
-                     <p className="text-sm">No {activeTab === "figure" ? "figure" : activeTab} projects found</p>
+                     <p className="text-sm">No projects found</p>
                   </div>
                 )}
               </>
@@ -769,13 +694,8 @@ export function App() {
         </div>
       </div>
 
-      {/* Floating Action Button */}
       <button 
-        className={`fixed bottom-8 right-8 w-16 h-16 text-white rounded-full flex items-center justify-center shadow-xl transition-all hover:scale-105 active:scale-95 z-[100] ${
-           activeTab === "animation" ? "bg-blue-600 hover:bg-blue-500 shadow-blue-600/40" :
-           activeTab === "skeleton" ? "bg-purple-600 hover:bg-purple-500 shadow-purple-600/40" :
-           "bg-green-600 hover:bg-green-500 shadow-green-600/40"
-        }`}
+        className="fixed bottom-8 right-8 w-16 h-16 text-white rounded-full flex items-center justify-center shadow-xl transition-all hover:scale-105 active:scale-95 z-[100] bg-green-600 hover:bg-green-500 shadow-green-600/40"
         onClick={(e) => { e.stopPropagation(); setIsDrawerOpen(true); }}
       >
         <Plus className="w-8 h-8" />
@@ -789,7 +709,7 @@ export function App() {
         >
           <div className="mx-auto w-full flex-1 overflow-hidden flex flex-col min-h-0">
             <DrawerHeader className="shrink-0">
-              <DrawerTitle>New {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}{activeTab === "figure" ? " (Pivot/Node)" : ""} Project</DrawerTitle>
+              <DrawerTitle>New Animation (Figure)</DrawerTitle>
             </DrawerHeader>
 
             <div className="p-5 overflow-y-auto space-y-3 flex-1 min-h-0">
@@ -847,11 +767,7 @@ export function App() {
 
             <DrawerFooter className="p-5 pt-2 shrink-0">
               <Button 
-                className={`w-full h-10 text-sm font-bold rounded-full text-white transition-all ${
-                   activeTab === "animation" ? "bg-blue-600 hover:bg-blue-500" :
-                   activeTab === "skeleton" ? "bg-purple-600 hover:bg-purple-500" :
-                   "bg-green-600 hover:bg-green-500"
-                }`}
+                className="w-full h-10 text-sm font-bold rounded-full text-white transition-all bg-green-600 hover:bg-green-500"
                 onClick={handleCreateProject}
               >
                 Create Workspace
