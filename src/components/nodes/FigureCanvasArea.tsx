@@ -23,7 +23,7 @@ export function FigureCanvasArea() {
     isPanning: false, startPanX: 0, startPanY: 0, startCamX: 0, startCamY: 0,
     startX: 0, startY: 0, startPointX: 0, startPointY: 0,
     isCreating: false, anchorX: 0, anchorY: 0,
-    isRotate: false, isStretch: false,
+    isRotate: false, isStretch: false, isCurveDrag: false,
     pivotIdx: -1, connectedPoints: [] as number[],
     initialAngles: [] as number[], initialDists: [] as number[],
     startAngle: 0, startDist: 0,
@@ -39,7 +39,7 @@ export function FigureCanvasArea() {
     isPanning: false, startPanX: 0, startPanY: 0, startCamX: 0, startCamY: 0,
     startX: 0, startY: 0, startPointX: 0, startPointY: 0,
     isCreating: false, anchorX: 0, anchorY: 0,
-    isRotate: false, isStretch: false,
+    isRotate: false, isStretch: false, isCurveDrag: false,
     pivotIdx: -1, connectedPoints: [] as number[],
     initialAngles: [] as number[], initialDists: [] as number[],
     startAngle: 0, startDist: 0,
@@ -140,6 +140,7 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
         dragState.current.isSegment = false
         dragState.current.isRotate = false
         dragState.current.isStretch = false
+        dragState.current.isCurveDrag = false
         dragState.current.segmentId = null
         if (wasCreating) {
           pushHistoryRef.current()
@@ -230,14 +231,10 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
           ctx.lineCap = seg.lineCap as CanvasLineCap || 'round'
           ctx.beginPath()
           if (seg.curved) {
-            const mx = (p1.x + p2.x) / 2
-            const my = (p1.y + p2.y) / 2
-            const dx = p2.x - p1.x
-            const dy = p2.y - p1.y
-            const nx = -dy * seg.curvature
-            const ny = dx * seg.curvature
+            const cpx = seg.controlX ?? ((p1.x + p2.x) / 2 + (-(p2.y - p1.y) * seg.curvature))
+            const cpy = seg.controlY ?? ((p1.y + p2.y) / 2 + ((p2.x - p1.x) * seg.curvature))
             ctx.moveTo(p1.x, p1.y)
-            ctx.quadraticCurveTo(mx + nx, my + ny, p2.x, p2.y)
+            ctx.quadraticCurveTo(cpx, cpy, p2.x, p2.y)
           } else {
             ctx.moveTo(p1.x, p1.y)
             ctx.lineTo(p2.x, p2.y)
@@ -249,10 +246,10 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
             ctx.globalAlpha = 0.3
             ctx.beginPath()
             if (seg.curved) {
-              const mx = (p1.x + p2.x) / 2; const my = (p1.y + p2.y) / 2
-              const dx = p2.x - p1.x; const dy = p2.y - p1.y
+              const cpx = seg.controlX ?? ((p1.x + p2.x) / 2 + (-(p2.y - p1.y) * seg.curvature))
+              const cpy = seg.controlY ?? ((p1.y + p2.y) / 2 + ((p2.x - p1.x) * seg.curvature))
               ctx.moveTo(p1.x, p1.y)
-              ctx.quadraticCurveTo(mx + -dy * seg.curvature, my + dx * seg.curvature, p2.x, p2.y)
+              ctx.quadraticCurveTo(cpx, cpy, p2.x, p2.y)
             } else {
               ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y)
             }
@@ -305,6 +302,16 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
           ctx.restore()
         }
         ctx.restore()
+        if (seg.curved && seg.controlX !== null && seg.controlY !== null) {
+          const z = cam.zoom
+          ctx.beginPath()
+          ctx.arc(seg.controlX, seg.controlY, 4 / z, 0, Math.PI * 2)
+          ctx.fillStyle = '#ec4899'
+          ctx.lineWidth = 1.5 / z
+          ctx.strokeStyle = '#ffffff'
+          ctx.stroke()
+          ctx.fill()
+        }
       })
 
       const z = cam.zoom
@@ -592,28 +599,53 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
     }
 
     if (activeTool === 'curve') {
+      if (selectedSegIdRef.current) {
+        const seg = fig.getSegment(selectedSegIdRef.current)
+        if (seg && seg.curved && seg.controlX !== null) {
+          const dx = world.x - seg.controlX
+          const dy = world.y - seg.controlY
+          const z = cameraRef.current.zoom
+          if (Math.sqrt(dx * dx + dy * dy) < 12 / z) {
+            setDrag({
+              isDragging: true, isPoint: false, pointIndex: -1,
+              isSegment: false, segmentId: selectedSegIdRef.current,
+              isCurveDrag: true,
+              startX: world.x, startY: world.y,
+              startPointX: seg.controlX, startPointY: seg.controlY,
+            })
+            return
+          }
+        }
+      }
       const segHit = hitTestSegment(world.x, world.y)
       if (segHit) {
         const seg = fig.getSegment(segHit)
         if (!seg) return
+        if (seg.type !== 'line') return
+        if (seg.curved && seg.controlX !== null) {
+          seg.curved = false
+          seg.controlX = null
+          seg.controlY = null
+          setSelectedSegmentId(null)
+          setSelectedPointIndex(null)
+          forceUpdateRef.current()
+          pushHistoryRef.current()
+          return
+        }
         const p1 = seg.getPoint1(fig)
         const p2 = seg.getPoint2(fig)
         if (!p1 || !p2) return
         const mx = (p1.x + p2.x) / 2
         const my = (p1.y + p2.y) / 2
-        const newIdx = fig.addPoint(mx, my)
-        const newType = seg.type
-        const newLayer = seg.layer
-        const p1Idx = seg.point1Index
-        const p2Idx = seg.point2Index
-        fig.removeSegment(segHit)
-        fig.createSegment(newType, p1Idx, newIdx)
-        const seg2 = fig.createSegment(newType, newIdx, p2Idx)
-        seg2.layer = newLayer + 0.5
-        setSelectedPointIndex(newIdx)
-        setSelectedSegmentId(null)
+        seg.curved = true
+        seg.controlX = mx
+        seg.controlY = my
+        setSelectedSegmentId(segHit)
+        setSelectedPointIndex(null)
         setDrag({
-          isDragging: true, isPoint: true, pointIndex: newIdx,
+          isDragging: true, isPoint: false, pointIndex: -1,
+          isSegment: false, segmentId: segHit,
+          isCurveDrag: true,
           startX: world.x, startY: world.y,
           startPointX: mx, startPointY: my,
         })
@@ -718,6 +750,15 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
           d.startX = world.x; d.startY = world.y
           forceUpdateRef.current()
         }
+      }
+    }
+
+    if (d.isDragging && d.isCurveDrag && d.segmentId) {
+      const seg = fig.getSegment(d.segmentId)
+      if (seg) {
+        seg.controlX = d.startPointX + (world.x - d.startX)
+        seg.controlY = d.startPointY + (world.y - d.startY)
+        forceUpdateRef.current()
       }
     }
 
