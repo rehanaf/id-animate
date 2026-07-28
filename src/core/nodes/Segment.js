@@ -5,7 +5,7 @@ export class Segment {
     this.point1Index = 0;
     this.point2Index = 1;
     this.color = '#d1d5db';
-    this.width = 3;
+    this.width = 8;
     this.lineCap = 'round';
     this.layer = 0;
     this.curved = false;
@@ -16,6 +16,7 @@ export class Segment {
     this.imageWidth = 100;
     this.imageHeight = 'auto';
     this.shapeClosed = true;
+    this.filled = type !== 'circle';
   }
 
   getPoint1(figure) {
@@ -43,6 +44,7 @@ export class Segment {
       imageWidth: this.imageWidth,
       imageHeight: this.imageHeight,
       shapeClosed: this.shapeClosed,
+      filled: this.filled,
     };
   }
 
@@ -62,6 +64,7 @@ export class Segment {
     seg.imageWidth = data.imageWidth ?? 100;
     seg.imageHeight = data.imageHeight ?? 'auto';
     seg.shapeClosed = data.shapeClosed ?? true;
+    seg.filled = data.filled ?? (seg.type !== 'circle');
     if (seg.imageData) {
       seg.imageObj = new Image();
       seg.imageObj.src = seg.imageData;

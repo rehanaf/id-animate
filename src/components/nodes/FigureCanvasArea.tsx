@@ -264,13 +264,26 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
           const dx = p2.x - p1.x
           const dy = p2.y - p1.y
           const radius = Math.sqrt(dx * dx + dy * dy) / 2
-          ctx.fillStyle = seg.color || '#d1d5db'
+          ctx.lineWidth = seg.width || 3
+          ctx.strokeStyle = seg.color || '#d1d5db'
+          ctx.lineCap = seg.lineCap as CanvasLineCap || 'round'
+          if (seg.filled !== false) {
+            ctx.fillStyle = seg.color || '#d1d5db'
+            ctx.beginPath()
+            ctx.arc(mx, my, Math.max(radius, 1), 0, Math.PI * 2)
+            ctx.fill()
+          }
           ctx.beginPath()
           ctx.arc(mx, my, Math.max(radius, 1), 0, Math.PI * 2)
-          ctx.fill()
-          ctx.strokeStyle = isSelected ? '#3b82f6' : 'rgba(255,255,255,0.3)'
-          ctx.lineWidth = isSelected ? 3 / cam.zoom : 1
           ctx.stroke()
+          if (isSelected) {
+            ctx.strokeStyle = '#3b82f6'
+            ctx.lineWidth = (seg.width || 3) + 4
+            ctx.globalAlpha = 0.3
+            ctx.beginPath()
+            ctx.arc(mx, my, Math.max(radius, 1), 0, Math.PI * 2)
+            ctx.stroke()
+          }
         } else if (seg.type === 'image' && seg.imageObj && seg.imageObj.complete) {
           const mx = (p1.x + p2.x) / 2
           const my = (p1.y + p2.y) / 2

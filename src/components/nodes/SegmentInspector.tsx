@@ -217,11 +217,23 @@ export function SegmentInspector() {
 
         {seg.type === 'circle' && (
           <div className="flex flex-col gap-1">
-            <label className="text-[10px] text-gray-500 font-bold uppercase">Closed Shape</label>
+            <div className="flex items-center justify-between">
+              <label className="text-[10px] text-gray-500 font-bold uppercase">Filled</label>
+              <input
+                type="checkbox"
+                checked={seg.filled !== false}
+                onChange={(e) => handleChange("filled", e.target.checked)}
+                disabled={isAnimating}
+              />
+            </div>
+            <label className="text-[10px] text-gray-500 font-bold uppercase">Line Width</label>
             <input
-              type="checkbox"
-              checked={seg.shapeClosed}
-              onChange={(e) => handleChange("shapeClosed", e.target.checked)}
+              type="number"
+              min="1"
+              max="50"
+              value={seg.width}
+              onChange={(e) => handleChange("width", Math.max(1, parseFloat(e.target.value) || 1))}
+              className="w-full bg-black/40 border border-white/10 rounded-lg px-2 py-1.5 text-sm text-white font-mono focus:outline-none focus:border-blue-500"
               disabled={isAnimating}
             />
           </div>
