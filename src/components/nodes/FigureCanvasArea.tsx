@@ -28,6 +28,9 @@ export function FigureCanvasArea() {
     initialAngles: [] as number[], initialDists: [] as number[],
     startAngle: 0, startDist: 0,
     childOffsets: [] as {dx: number, dy: number}[],
+    fkParent: {} as Record<number, number>,
+    fkLocal: {} as Record<number, {angle: number, dist: number}>,
+    fkMoveInit: {} as Record<number, {x: number, y: number}>,
   })
   const cameraRef = useRef({ x: 0, y: 0, zoom: 1 })
 
@@ -437,15 +440,25 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
     if (activeTool === 'point' || activeTool === 'select') {
       const ptHit = hitTestPoint(world.x, world.y)
       if (ptHit >= 0) {
+        const allConnected = findConnectedPoints(fig, ptHit)
+        allConnected.push(ptHit)
         setSelectedPointIndex(ptHit)
         setSelectedSegmentId(null)
+        const initPositions: Record<number, {x: number, y: number}> = {}
+        allConnected.forEach(i => { initPositions[i] = { x: fig.points[i].x, y: fig.points[i].y } })
+        initPositions[ptHit] = { x: fig.points[ptHit].x, y: fig.points[ptHit].y }
         dragState.current = {
           isDragging: true, isPoint: true, pointIndex: ptHit,
           isSegment: false, segmentId: null,
           isPanning: false, startPanX: 0, startPanY: 0, startCamX: 0, startCamY: 0,
           startX: world.x, startY: world.y,
           startPointX: fig.points[ptHit].x, startPointY: fig.points[ptHit].y,
-          isCreating: false,
+          isCreating: false, anchorX: 0, anchorY: 0,
+          isRotate: false, isStretch: false, pivotIdx: -1,
+          connectedPoints: allConnected, initialAngles: [], initialDists: [],
+          startAngle: 0, startDist: 0, childOffsets: [],
+          fkParent: {}, fkLocal: {},
+          fkMoveInit: initPositions,
         }
         return
       }
@@ -478,18 +491,34 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
       )
       if (!connectedSeg) return
       const pivotIdx = connectedSeg.point1Index === ptHit ? connectedSeg.point2Index : connectedSeg.point1Index
-      const chainPoints = findSubTree(fig, ptHit, pivotIdx).filter(i => i !== 0)
-      const px = fig.points[pivotIdx].x
-      const py = fig.points[pivotIdx].y
-      const sx = fig.points[ptHit].x
-      const sy = fig.points[ptHit].y
-      const startAngle = Math.atan2(world.y - py, world.x - px)
-      const initialSwingAngle = Math.atan2(sy - py, sx - px)
-      const swingDist = Math.sqrt((sx - px) ** 2 + (sy - py) ** 2)
-      const childOffsets = chainPoints.filter(i => i !== ptHit).map(i => ({
-        dx: fig.points[i].x - sx,
-        dy: fig.points[i].y - sy,
-      }))
+      const childPoints = findSubTree(fig, ptHit, pivotIdx).filter(i => i !== 0)
+      const parentMap: Record<number, number> = {}
+      parentMap[ptHit] = pivotIdx
+      const queue = [ptHit]
+      const visited = new Set<number>([ptHit])
+      while (queue.length > 0) {
+        const idx = queue.shift()!
+        fig.segments.forEach((s: any) => {
+          const other = s.point1Index === idx ? s.point2Index : s.point2Index === idx ? s.point1Index : -1
+          if (other >= 0 && !visited.has(other) && other !== pivotIdx) {
+            parentMap[other] = idx
+            visited.add(other)
+            queue.push(other)
+          }
+        })
+      }
+      const localData: Record<number, { angle: number; dist: number }> = {}
+      const addLocal = (ci: number) => {
+        const parent = parentMap[ci]
+        if (parent === undefined) return
+        const dx = fig.points[ci].x - fig.points[parent].x
+        const dy = fig.points[ci].y - fig.points[parent].y
+        localData[ci] = {
+          angle: Math.atan2(dy, dx),
+          dist: Math.sqrt(dx * dx + dy * dy),
+        }
+      }
+      Object.keys(parentMap).forEach(k => addLocal(parseInt(k)))
       setSelectedPointIndex(ptHit)
       setSelectedSegmentId(null)
       dragState.current = {
@@ -497,12 +526,14 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
         isSegment: false, segmentId: null,
         isPanning: false, startPanX: 0, startPanY: 0, startCamX: 0, startCamY: 0,
         startX: world.x, startY: world.y, startPointX: 0, startPointY: 0,
-        isCreating: false, anchorX: sx, anchorY: sy,
+        isCreating: false, anchorX: fig.points[ptHit].x, anchorY: fig.points[ptHit].y,
         isRotate: true, isStretch: false,
-        pivotIdx, connectedPoints: [ptHit, ...chainPoints.filter(i => i !== ptHit)],
-        initialAngles: [initialSwingAngle], initialDists: [swingDist],
-        startAngle, startDist: 0,
-        childOffsets,
+        pivotIdx, connectedPoints: [ptHit, ...childPoints],
+        initialAngles: [], initialDists: [],
+        startAngle: Math.atan2(world.y - fig.points[pivotIdx].y, world.x - fig.points[pivotIdx].x),
+        startDist: 0,
+        childOffsets: [],
+        fkParent: parentMap, fkLocal: localData,
       }
       forceUpdateRef.current()
       return
@@ -578,8 +609,20 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
 
     if (d.isDragging && d.isPoint && d.pointIndex >= 0 && fig.points[d.pointIndex]) {
       const pt = fig.points[d.pointIndex]
-      pt.x = d.startPointX + (world.x - d.startX)
-      pt.y = d.startPointY + (world.y - d.startY)
+      const dx = world.x - d.startX
+      const dy = world.y - d.startY
+      if (d.connectedPoints.length > 0) {
+        d.connectedPoints.forEach(i => {
+          const init = d.fkMoveInit[i]
+          if (init) {
+            fig.points[i].x = init.x + dx
+            fig.points[i].y = init.y + dy
+          }
+        })
+      } else {
+        pt.x = d.startPointX + dx
+        pt.y = d.startPointY + dy
+      }
 
       if (d.isCreating && fig.segments.length > 0) {
         const seg = fig.segments[fig.segments.length - 1]
@@ -622,22 +665,27 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
     }
 
     if (d.isDragging && d.isRotate && d.pivotIdx >= 0 && d.connectedPoints.length > 0) {
-      const swingIdx = d.connectedPoints[0]
       const px = fig.points[d.pivotIdx].x
       const py = fig.points[d.pivotIdx].y
-      const currentAngle = Math.atan2(world.y - py, world.x - px)
-      const angleDelta = currentAngle - d.startAngle
-      const newAngle = d.initialAngles[0] + angleDelta
-      const dist = d.initialDists[0]
-      const newSx = px + Math.cos(newAngle) * dist
-      const newSy = py + Math.sin(newAngle) * dist
-      fig.points[swingIdx].x = newSx
-      fig.points[swingIdx].y = newSy
-      d.connectedPoints.slice(1).forEach((ci, i) => {
-        if (d.childOffsets[i]) {
-          fig.points[ci].x = newSx + d.childOffsets[i].dx
-          fig.points[ci].y = newSy + d.childOffsets[i].dy
+      const angleDelta = Math.atan2(world.y - py, world.x - px) - d.startAngle
+      const newPositions: Record<number, {x: number, y: number}> = {}
+      newPositions[d.pivotIdx] = { x: px, y: py }
+      d.connectedPoints.forEach((ci) => {
+        const parent = d.fkParent[ci]
+        if (parent === undefined) return
+        const pp = newPositions[parent]
+        if (!pp) return
+        const local = d.fkLocal[ci]
+        if (!local) return
+        const newAngle = local.angle + angleDelta
+        newPositions[ci] = {
+          x: pp.x + Math.cos(newAngle) * local.dist,
+          y: pp.y + Math.sin(newAngle) * local.dist,
         }
+      })
+      Object.entries(newPositions).forEach(([key, pos]) => {
+        fig.points[parseInt(key)].x = pos.x
+        fig.points[parseInt(key)].y = pos.y
       })
       forceUpdateRef.current()
     }
