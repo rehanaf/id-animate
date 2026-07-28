@@ -36,11 +36,11 @@ interface FigureEditorContextType {
 
 const FigureEditorContext = createContext<FigureEditorContextType | undefined>(undefined);
 
-export function FigureEditorProvider({ children }: { children: React.ReactNode }) {
+export function FigureEditorProvider({ children, initialMode }: { children: React.ReactNode; initialMode?: "figure" | "animate" }) {
   const [figure, setFigure] = useState<Figure | null>(null);
   const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
   const [selectedPointIndex, setSelectedPointIndex] = useState<number | null>(null);
-  const [editorMode, setEditorMode] = useState<"figure" | "animate">("figure");
+  const [editorMode, setEditorMode] = useState<"figure" | "animate">(initialMode || "figure");
   const [activeTool, setActiveTool] = useState("select");
   const [revision, setRevision] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
-import { Settings, Plus, Video, FolderPlus, Folder, FolderOpen, ArrowLeft, MoreVertical, Copy, Pencil, Trash2, Upload, Shapes } from "lucide-react"
+import { Settings, Plus, Video, FolderPlus, Folder, FolderOpen, ArrowLeft, MoreVertical, Copy, Pencil, Trash2, Upload, Shapes, Bone } from "lucide-react"
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from "@/components/ui/drawer"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import JSZip from "jszip"
@@ -34,7 +34,7 @@ export interface Project {
 
 export function App() {
   const [view, setView] = useState<"menu" | "figure-editor">("menu")
-  const [activeTab, setActiveTab] = useState<"figure">("figure")
+  const [activeTab, setActiveTab] = useState<"animation" | "figure">("figure")
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isClearDataConfirmOpen, setIsClearDataConfirmOpen] = useState(false)
   const [activeGroupId, setActiveGroupId] = useState<string | null>(null)
@@ -340,6 +340,23 @@ export function App() {
     handleOpenProject(newProj)
   }
 
+  const [initialEditorMode, setInitialEditorMode] = useState<"figure" | "animate">("figure")
+
+  const handleOpenProject = async (proj: Project) => {
+    try {
+      await AppStorage.setItem("active_project_id", proj.id);
+      if (proj.data) {
+        const rawData = typeof proj.data === "string" ? proj.data : JSON.stringify(proj.data);
+        await AppStorage.setItem("figure_workspace", rawData);
+      } else {
+        await AppStorage.setItem("figure_workspace", "");
+      }
+      setActiveProjectId(proj.id);
+      setInitialEditorMode(activeTab === "animation" ? "animate" : "figure");
+      setView("figure-editor");
+    } catch(e) {}
+  };
+
   const handleCreateGroup = () => {
     if (!newGroupName.trim()) return;
     const newGroup: ProjectGroup = {
@@ -442,23 +459,9 @@ export function App() {
     setView("menu");
   }
 
-  const handleOpenProject = async (proj: Project) => {
-    try {
-      await AppStorage.setItem("active_project_id", proj.id);
-      if (proj.data) {
-        const rawData = typeof proj.data === "string" ? proj.data : JSON.stringify(proj.data);
-        await AppStorage.setItem("figure_workspace", rawData);
-      } else {
-        await AppStorage.setItem("figure_workspace", "");
-      }
-      setActiveProjectId(proj.id);
-      setView("figure-editor");
-    } catch(e) {}
-  };
-
   if (view === "figure-editor") {
     return (
-      <FigureEditorProvider>
+      <FigureEditorProvider initialMode={initialEditorMode}>
         <FigureEditorPage onBack={handleBack} />
       </FigureEditorProvider>
     )
@@ -617,11 +620,18 @@ export function App() {
         {/* Sticky Tabs */}
         <div className="sticky top-0 z-30 flex items-center justify-center gap-2 p-3 bg-[#0a0a0f]/80 backdrop-blur-xl border-y border-[#1a1a24] shadow-md w-full shrink-0">
           <Button 
-            variant="default"
-            className="rounded-full px-5 transition-all font-medium text-sm text-white bg-green-600 hover:bg-green-700 shadow-md shadow-green-900/50"
+            variant={activeTab === "animation" ? "default" : "ghost"} 
+            className={`rounded-full px-5 transition-all font-medium text-sm text-white ${activeTab === "animation" ? "bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-900/50" : "hover:bg-white/10 text-white"}`}
+            onClick={() => setActiveTab("animation")}
+          >
+            <Video className="w-4 h-4 mr-2" /> Animation
+          </Button>
+          <Button 
+            variant={activeTab === "figure" ? "default" : "ghost"} 
+            className={`rounded-full px-5 transition-all font-medium text-sm text-white ${activeTab === "figure" ? "bg-green-600 hover:bg-green-700 shadow-md shadow-green-900/50" : "hover:bg-white/10 text-white"}`}
             onClick={() => setActiveTab("figure")}
           >
-            <Shapes className="w-4 h-4 mr-2" /> Animation (Figure)
+            <Shapes className="w-4 h-4 mr-2" /> Figure
           </Button>
         </div>
 
@@ -634,7 +644,7 @@ export function App() {
                 {/* Root View */}
                 <div className="flex items-center justify-between mb-8">
                    <h2 className="text-xl font-bold text-gray-200">
-                      Animations (Figure)
+                      {activeTab === "animation" ? "Animations" : "Figures"}
                    </h2>
                    <Button 
                      variant="outline" 
