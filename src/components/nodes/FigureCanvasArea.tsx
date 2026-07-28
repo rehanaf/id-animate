@@ -27,6 +27,7 @@ export function FigureCanvasArea() {
     pivotIdx: -1, connectedPoints: [] as number[],
     initialAngles: [] as number[], initialDists: [] as number[],
     startAngle: 0, startDist: 0,
+    childOffsets: [] as {dx: number, dy: number}[],
   })
   const cameraRef = useRef({ x: 0, y: 0, zoom: 1 })
 
@@ -480,12 +481,15 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
       const chainPoints = findSubTree(fig, ptHit, pivotIdx).filter(i => i !== 0)
       const px = fig.points[pivotIdx].x
       const py = fig.points[pivotIdx].y
+      const sx = fig.points[ptHit].x
+      const sy = fig.points[ptHit].y
       const startAngle = Math.atan2(world.y - py, world.x - px)
-      const initialAngles = chainPoints.map(i => Math.atan2(fig.points[i].y - py, fig.points[i].x - px))
-      const initialDists = chainPoints.map(i => {
-        const dx = fig.points[i].x - px; const dy = fig.points[i].y - py
-        return Math.sqrt(dx * dx + dy * dy)
-      })
+      const initialSwingAngle = Math.atan2(sy - py, sx - px)
+      const swingDist = Math.sqrt((sx - px) ** 2 + (sy - py) ** 2)
+      const childOffsets = chainPoints.filter(i => i !== ptHit).map(i => ({
+        dx: fig.points[i].x - sx,
+        dy: fig.points[i].y - sy,
+      }))
       setSelectedPointIndex(ptHit)
       setSelectedSegmentId(null)
       dragState.current = {
@@ -493,11 +497,12 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
         isSegment: false, segmentId: null,
         isPanning: false, startPanX: 0, startPanY: 0, startCamX: 0, startCamY: 0,
         startX: world.x, startY: world.y, startPointX: 0, startPointY: 0,
-        isCreating: false, anchorX: 0, anchorY: 0,
+        isCreating: false, anchorX: sx, anchorY: sy,
         isRotate: true, isStretch: false,
-        pivotIdx, connectedPoints: chainPoints,
-        initialAngles, initialDists,
+        pivotIdx, connectedPoints: [ptHit, ...chainPoints.filter(i => i !== ptHit)],
+        initialAngles: [initialSwingAngle], initialDists: [swingDist],
         startAngle, startDist: 0,
+        childOffsets,
       }
       forceUpdateRef.current()
       return
@@ -616,16 +621,23 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
       }
     }
 
-    if (d.isDragging && d.isRotate && d.pivotIdx >= 0) {
+    if (d.isDragging && d.isRotate && d.pivotIdx >= 0 && d.connectedPoints.length > 0) {
+      const swingIdx = d.connectedPoints[0]
       const px = fig.points[d.pivotIdx].x
       const py = fig.points[d.pivotIdx].y
       const currentAngle = Math.atan2(world.y - py, world.x - px)
       const angleDelta = currentAngle - d.startAngle
-      d.connectedPoints.forEach((ci, i) => {
-        const newAngle = d.initialAngles[i] + angleDelta
-        const dist = d.initialDists[i]
-        fig.points[ci].x = px + Math.cos(newAngle) * dist
-        fig.points[ci].y = py + Math.sin(newAngle) * dist
+      const newAngle = d.initialAngles[0] + angleDelta
+      const dist = d.initialDists[0]
+      const newSx = px + Math.cos(newAngle) * dist
+      const newSy = py + Math.sin(newAngle) * dist
+      fig.points[swingIdx].x = newSx
+      fig.points[swingIdx].y = newSy
+      d.connectedPoints.slice(1).forEach((ci, i) => {
+        if (d.childOffsets[i]) {
+          fig.points[ci].x = newSx + d.childOffsets[i].dx
+          fig.points[ci].y = newSy + d.childOffsets[i].dy
+        }
       })
       forceUpdateRef.current()
     }
