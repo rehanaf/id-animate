@@ -302,10 +302,19 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
           ctx.restore()
         }
         ctx.restore()
-        if (seg.curved && seg.controlX !== null && seg.controlY !== null) {
+        if (seg.curved && seg.controlX !== null && seg.controlY !== null && activeToolRef.current === 'curve') {
           const z = cam.zoom
+          ctx.setLineDash([4 / z, 4 / z])
           ctx.beginPath()
-          ctx.arc(seg.controlX, seg.controlY, 4 / z, 0, Math.PI * 2)
+          ctx.moveTo(p1.x, p1.y)
+          ctx.lineTo(seg.controlX, seg.controlY)
+          ctx.lineTo(p2.x, p2.y)
+          ctx.strokeStyle = 'rgba(236,72,153,0.4)'
+          ctx.lineWidth = 1 / z
+          ctx.stroke()
+          ctx.setLineDash([])
+          ctx.beginPath()
+          ctx.arc(seg.controlX, seg.controlY, 5 / z, 0, Math.PI * 2)
           ctx.fillStyle = '#ec4899'
           ctx.lineWidth = 1.5 / z
           ctx.strokeStyle = '#ffffff'
