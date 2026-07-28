@@ -173,7 +173,8 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
         canvas.height = h
       }
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-      ctx.clearRect(0, 0, rect.width, rect.height)
+      ctx.fillStyle = "#0a0a0f"
+      ctx.fillRect(0, 0, rect.width, rect.height)
 
       // Animation playback
       if (editorModeRef.current === "animate" && currentAnimRef.current) {
