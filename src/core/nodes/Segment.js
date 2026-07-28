@@ -17,8 +17,8 @@ export class Segment {
     this.imageHeight = 'auto';
     this.shapeClosed = true;
     this.filled = type !== 'circle';
-    this.controlX = null;
-    this.controlY = null;
+    this.controlDX = null;
+    this.controlDY = null;
   }
 
   getPoint1(figure) {
@@ -47,8 +47,8 @@ export class Segment {
       imageHeight: this.imageHeight,
       shapeClosed: this.shapeClosed,
       filled: this.filled,
-      controlX: this.controlX,
-      controlY: this.controlY,
+      controlDX: this.controlDX,
+      controlDY: this.controlDY,
     };
   }
 
@@ -69,8 +69,8 @@ export class Segment {
     seg.imageHeight = data.imageHeight ?? 'auto';
     seg.shapeClosed = data.shapeClosed ?? true;
     seg.filled = data.filled ?? (seg.type !== 'circle');
-    seg.controlX = data.controlX ?? null;
-    seg.controlY = data.controlY ?? null;
+    seg.controlDX = data.controlDX ?? null;
+    seg.controlDY = data.controlDY ?? null;
     if (seg.imageData) {
       seg.imageObj = new Image();
       seg.imageObj.src = seg.imageData;
