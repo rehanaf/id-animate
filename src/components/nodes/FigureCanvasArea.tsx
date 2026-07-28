@@ -435,27 +435,22 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
     }
 
     if (activeTool === 'rotate') {
-      const segHit = hitTestSegment(world.x, world.y)
-      if (!segHit) return
-      const seg = fig.getSegment(segHit)
-      if (!seg) return
-      if (seg.type !== 'line') return
-      const p1 = fig.points[seg.point1Index]
-      const p2 = fig.points[seg.point2Index]
-      if (!p1 || !p2) return
-      const dist1 = Math.sqrt((world.x - p1.x) ** 2 + (world.y - p1.y) ** 2)
-      const dist2 = Math.sqrt((world.x - p2.x) ** 2 + (world.y - p2.y) ** 2)
-      const pivotIdx = dist1 <= dist2 ? seg.point1Index : seg.point2Index
-      const swingIdx = dist1 <= dist2 ? seg.point2Index : seg.point1Index
+      const ptHit = hitTestPoint(world.x, world.y)
+      if (ptHit < 0) return
+      const connectedSeg = fig.segments.find(
+        s => (s.point1Index === ptHit || s.point2Index === ptHit) && s.type === 'line'
+      )
+      if (!connectedSeg) return
+      const pivotIdx = connectedSeg.point1Index === ptHit ? connectedSeg.point2Index : connectedSeg.point1Index
       const px = fig.points[pivotIdx].x
       const py = fig.points[pivotIdx].y
-      const sx = fig.points[swingIdx].x
-      const sy = fig.points[swingIdx].y
+      const sx = fig.points[ptHit].x
+      const sy = fig.points[ptHit].y
       const len = Math.sqrt((sx - px) ** 2 + (sy - py) ** 2)
       const startAngle = Math.atan2(world.y - py, world.x - px)
       const initialAngle = Math.atan2(sy - py, sx - px)
-      setSelectedSegmentId(segHit)
-      setSelectedPointIndex(null)
+      setSelectedPointIndex(ptHit)
+      setSelectedSegmentId(null)
       dragState.current = {
         isDragging: true, isPoint: false, pointIndex: -1,
         isSegment: false, segmentId: null,
@@ -463,7 +458,7 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
         startX: world.x, startY: world.y, startPointX: 0, startPointY: 0,
         isCreating: false, anchorX: 0, anchorY: 0,
         isRotate: true, isStretch: false,
-        pivotIdx, connectedPoints: [swingIdx],
+        pivotIdx, connectedPoints: [ptHit],
         initialAngles: [initialAngle], initialDists: [len],
         startAngle, startDist: len,
       }
