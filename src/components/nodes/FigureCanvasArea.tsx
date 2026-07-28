@@ -529,6 +529,12 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
         return
       }
       setSelectedPointIndex(null)
+      const segHit = hitTestSegment(world.x, world.y)
+      if (segHit) {
+        setSelectedSegmentId(segHit)
+        return
+      }
+      setSelectedSegmentId(null)
     }
 
     if (activeTool === 'rotate') {
