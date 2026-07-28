@@ -270,12 +270,12 @@ export function FigureEditorPage({ onBack }: { onBack: () => void }) {
           title="Segments List"
           icon={ListTree}
         />
-        <button onClick={handleFlip} disabled={!selectedSeg} className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${selectedSeg ? 'text-gray-300 hover:text-white hover:bg-white/10' : 'text-gray-600'}`} title="Flip X (mirror point1 around point2)"><ArrowLeftRight className="w-4 h-4" /></button>
+        <button onClick={handleFlip} disabled={!selectedSeg} className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${selectedSeg ? 'bg-white/10 text-white hover:bg-white/20' : 'text-gray-700'}`} title="Flip X (mirror point1 around point2)"><ArrowLeftRight className="w-4 h-4" /></button>
         <div className="relative w-8 h-8 flex items-center justify-center">
           <input type="color" value={selectedSeg?.color || '#d1d5db'} onChange={(e) => { if (selectedSeg) { selectedSeg.color = e.target.value; forceUpdate(); pushHistory() }}} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10" disabled={!selectedSeg} />
-          <button onClick={(e) => { const input = e.currentTarget.parentElement?.querySelector('input[type=color]') as HTMLInputElement; if (selectedSeg) input?.click() }} className={`w-7 h-7 rounded-full transition-all border ${selectedSeg ? 'border-white/30 hover:border-white/60 cursor-pointer' : 'border-white/10 cursor-not-allowed'}`} style={{ background: selectedSeg?.color || '#333' }} />
+          <button onClick={(e) => { const input = e.currentTarget.parentElement?.querySelector('input[type=color]') as HTMLInputElement; if (selectedSeg) input?.click() }} className={`w-6 h-6 rounded-full transition-all ring-1 ${selectedSeg ? 'ring-white/40 hover:ring-white/80 cursor-pointer' : 'ring-white/10 cursor-not-allowed'}`} style={{ background: selectedSeg?.color || '#333' }} />
         </div>
-        <button onClick={cycleLineCap} disabled={!selectedSeg} className={`w-8 h-8 flex items-center justify-center rounded-full transition-all text-[10px] font-bold ${selectedSeg ? 'text-gray-300 hover:text-white hover:bg-white/10' : 'text-gray-600'}`} title={`Line cap: ${selectedSeg?.lineCap || 'round'}`}>
+        <button onClick={cycleLineCap} disabled={!selectedSeg} className={`w-8 h-8 flex items-center justify-center rounded-full transition-all text-[10px] font-bold ${selectedSeg ? 'bg-white/10 text-white hover:bg-white/20' : 'text-gray-700'}`} title={`Line cap: ${selectedSeg?.lineCap || 'round'}`}>
           {selectedSeg?.lineCap === 'round' ? 'R' : selectedSeg?.lineCap === 'square' ? 'S' : selectedSeg ? 'B' : '-'}
         </button>
       </FloatingSidebar>
