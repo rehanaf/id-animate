@@ -863,6 +863,7 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
     <canvas
       ref={canvasRef}
       className="absolute inset-0 w-full h-full cursor-crosshair"
+      style={{ touchAction: 'none' }}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
     />
