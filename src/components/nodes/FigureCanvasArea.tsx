@@ -382,6 +382,22 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
     return result.filter(i => i !== pivotIdx)
   }
 
+  const findSubTree = (fig: any, rootIdx: number, excludeIdx: number): number[] => {
+    const visited = new Set<number>([rootIdx])
+    const queue = [rootIdx]
+    while (queue.length > 0) {
+      const idx = queue.shift()!
+      fig.segments.forEach((s: any) => {
+        const other = s.point1Index === idx ? s.point2Index : s.point2Index === idx ? s.point1Index : -1
+        if (other >= 0 && !visited.has(other) && other !== excludeIdx) {
+          visited.add(other)
+          queue.push(other)
+        }
+      })
+    }
+    return Array.from(visited).filter(i => i !== rootIdx)
+  }
+
   const handlePointerDown = (e: React.PointerEvent) => {
     if (!figureRef.current) return
     const canvas = canvasRef.current
@@ -438,17 +454,19 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
       const ptHit = hitTestPoint(world.x, world.y)
       if (ptHit < 0) return
       const connectedSeg = fig.segments.find(
-        s => (s.point1Index === ptHit || s.point2Index === ptHit) && s.type === 'line'
+        s => (s.point1Index === ptHit || s.point2Index === ptHit)
       )
       if (!connectedSeg) return
       const pivotIdx = connectedSeg.point1Index === ptHit ? connectedSeg.point2Index : connectedSeg.point1Index
+      const chainPoints = findSubTree(fig, ptHit, pivotIdx)
       const px = fig.points[pivotIdx].x
       const py = fig.points[pivotIdx].y
-      const sx = fig.points[ptHit].x
-      const sy = fig.points[ptHit].y
-      const len = Math.sqrt((sx - px) ** 2 + (sy - py) ** 2)
       const startAngle = Math.atan2(world.y - py, world.x - px)
-      const initialAngle = Math.atan2(sy - py, sx - px)
+      const initialAngles = chainPoints.map(i => Math.atan2(fig.points[i].y - py, fig.points[i].x - px))
+      const initialDists = chainPoints.map(i => {
+        const dx = fig.points[i].x - px; const dy = fig.points[i].y - py
+        return Math.sqrt(dx * dx + dy * dy)
+      })
       setSelectedPointIndex(ptHit)
       setSelectedSegmentId(null)
       dragState.current = {
@@ -458,9 +476,9 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
         startX: world.x, startY: world.y, startPointX: 0, startPointY: 0,
         isCreating: false, anchorX: 0, anchorY: 0,
         isRotate: true, isStretch: false,
-        pivotIdx, connectedPoints: [ptHit],
-        initialAngles: [initialAngle], initialDists: [len],
-        startAngle, startDist: len,
+        pivotIdx, connectedPoints: chainPoints,
+        initialAngles, initialDists,
+        startAngle, startDist: 0,
       }
       forceUpdateRef.current()
       return
