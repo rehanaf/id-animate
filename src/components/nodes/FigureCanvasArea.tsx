@@ -32,6 +32,10 @@ export function FigureCanvasArea() {
     fkLocal: {} as Record<number, {angle: number, dist: number}>,
     fkMoveInit: {} as Record<number, {x: number, y: number}>,
   })
+
+  const setDrag = (partial: Partial<typeof dragState.current>) => {
+    Object.assign(dragState.current, partial)
+  }
   const cameraRef = useRef({ x: 0, y: 0, zoom: 1 })
 
   const activeToolRef = useRef(activeTool)
@@ -116,10 +120,11 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
         const wasCreating = dragState.current.isCreating
         dragState.current.isDragging = false
         dragState.current.isPanning = false
-        dragState.current.bone = null
-        dragState.current.segmentId = null
-        dragState.current.isSegment = false
         dragState.current.isPoint = false
+        dragState.current.isSegment = false
+        dragState.current.isRotate = false
+        dragState.current.isStretch = false
+        dragState.current.segmentId = null
         if (wasCreating) {
           pushHistoryRef.current()
         }
@@ -417,7 +422,7 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
     const rootHit = hitTestPoint(world.x, world.y)
     if (rootHit === 0 && e.button === 0 && activeTool !== 'line' && activeTool !== 'circle' && activeTool !== 'image') {
       setSelectedPointIndex(0)
-      dragState.current = {
+      setDrag({
         isDragging: true, isPoint: true, pointIndex: 0,
         isSegment: false, segmentId: null,
         isPanning: false, startPanX: 0, startPanY: 0, startCamX: 0, startCamY: 0,
@@ -427,13 +432,13 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
         isRotate: false, isStretch: false, pivotIdx: -1,
         connectedPoints: [], initialAngles: [], initialDists: [],
         startAngle: 0, startDist: 0,
-      }
+      })
       forceUpdateRef.current()
       return
     }
 
     if (e.button === 1) {
-      dragState.current = { isDragging: false, isPoint: false, pointIndex: -1, isSegment: false, segmentId: null, isPanning: true, startPanX: e.clientX, startPanY: e.clientY, startCamX: cameraRef.current.x, startCamY: cameraRef.current.y, startX: 0, startY: 0, startPointX: 0, startPointY: 0, isCreating: false }
+      setDrag({ isDragging: false, isPoint: false, pointIndex: -1, isSegment: false, segmentId: null, isPanning: true, startPanX: e.clientX, startPanY: e.clientY, startCamX: cameraRef.current.x, startCamY: cameraRef.current.y, startX: 0, startY: 0, startPointX: 0, startPointY: 0, isCreating: false })
       return
     }
 
@@ -447,7 +452,7 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
         const initPositions: Record<number, {x: number, y: number}> = {}
         allConnected.forEach(i => { initPositions[i] = { x: fig.points[i].x, y: fig.points[i].y } })
         initPositions[ptHit] = { x: fig.points[ptHit].x, y: fig.points[ptHit].y }
-        dragState.current = {
+        setDrag({
           isDragging: true, isPoint: true, pointIndex: ptHit,
           isSegment: false, segmentId: null,
           isPanning: false, startPanX: 0, startPanY: 0, startCamX: 0, startCamY: 0,
@@ -459,7 +464,7 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
           startAngle: 0, startDist: 0, childOffsets: [],
           fkParent: {}, fkLocal: {},
           fkMoveInit: initPositions,
-        }
+        })
         return
       }
     }
@@ -469,14 +474,14 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
       if (segHit) {
         setSelectedSegmentId(segHit)
         setSelectedPointIndex(null)
-        dragState.current = {
+        setDrag({
           isDragging: true, isPoint: false, pointIndex: -1,
           isSegment: true, segmentId: segHit,
           isPanning: false, startPanX: 0, startPanY: 0, startCamX: 0, startCamY: 0,
           startX: world.x, startY: world.y,
           startPointX: world.x, startPointY: world.y,
           isCreating: false,
-        }
+        })
         return
       }
       setSelectedSegmentId(null)
@@ -521,7 +526,7 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
       Object.keys(parentMap).forEach(k => addLocal(parseInt(k)))
       setSelectedPointIndex(ptHit)
       setSelectedSegmentId(null)
-      dragState.current = {
+      setDrag({
         isDragging: true, isPoint: false, pointIndex: -1,
         isSegment: false, segmentId: null,
         isPanning: false, startPanX: 0, startPanY: 0, startCamX: 0, startCamY: 0,
@@ -534,7 +539,7 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
         startDist: 0,
         childOffsets: [],
         fkParent: parentMap, fkLocal: localData,
-      }
+      })
       forceUpdateRef.current()
       return
     }
@@ -552,7 +557,7 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
       })
       const startAngle = Math.atan2(world.y - fig.points[ptHit].y, world.x - fig.points[ptHit].x)
       const startDist = Math.sqrt((world.x - fig.points[ptHit].x) ** 2 + (world.y - fig.points[ptHit].y) ** 2)
-      dragState.current = {
+      setDrag({
         isDragging: true, isPoint: false, pointIndex: -1,
         isSegment: false, segmentId: null,
         isPanning: false, startPanX: 0, startPanY: 0, startCamX: 0, startCamY: 0,
@@ -562,7 +567,7 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
         pivotIdx: ptHit, connectedPoints: connected,
         initialAngles, initialDists,
         startAngle, startDist,
-      }
+      })
       forceUpdateRef.current()
       return
     }
@@ -577,20 +582,20 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
       const seg = fig.createSegment(activeTool, ptHit, p2Idx)
       setSelectedSegmentId(seg.id)
       setSelectedPointIndex(p2Idx)
-      dragState.current = {
+      setDrag({
         isDragging: true, isPoint: true, pointIndex: p2Idx,
         isSegment: false, segmentId: null,
         isPanning: false, startPanX: 0, startPanY: 0, startCamX: 0, startCamY: 0,
         startX: world.x, startY: world.y,
         startPointX: world.x, startPointY: world.y,
         isCreating: true, anchorX: fig.points[ptHit].x, anchorY: fig.points[ptHit].y,
-      }
+      })
       forceUpdateRef.current()
       return
     }
 
     if (e.button === 0) {
-      dragState.current = { isDragging: false, isPoint: false, pointIndex: -1, isSegment: false, segmentId: null, isPanning: true, startPanX: e.clientX, startPanY: e.clientY, startCamX: cameraRef.current.x, startCamY: cameraRef.current.y, startX: 0, startY: 0, startPointX: 0, startPointY: 0, isCreating: false }
+      setDrag({ isDragging: false, isPoint: false, pointIndex: -1, isSegment: false, segmentId: null, isPanning: true, startPanX: e.clientX, startPanY: e.clientY, startCamX: cameraRef.current.x, startCamY: cameraRef.current.y, startX: 0, startY: 0, startPointX: 0, startPointY: 0, isCreating: false })
     }
   }
 
@@ -611,8 +616,9 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
       const pt = fig.points[d.pointIndex]
       const dx = world.x - d.startX
       const dy = world.y - d.startY
-      if (d.connectedPoints.length > 0) {
-        d.connectedPoints.forEach(i => {
+      const cp = d.connectedPoints
+      if (cp && cp.length > 0) {
+        cp.forEach(i => {
           const init = d.fkMoveInit[i]
           if (init) {
             fig.points[i].x = init.x + dx
