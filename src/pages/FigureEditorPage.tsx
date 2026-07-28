@@ -30,10 +30,7 @@ export function FigureEditorPage({ onBack }: { onBack: () => void }) {
     const p1 = selectedSeg.getPoint1(figure)
     const p2 = selectedSeg.getPoint2(figure)
     if (!p1 || !p2) return
-    const mx = (p1.x + p2.x) / 2; const my = (p1.y + p2.y) / 2
-    const dx = p1.x - mx; const dy = p1.y - my
-    p1.x = mx - dx; p1.y = my - dy
-    p2.x = mx + dx; p2.y = my + dy
+    p1.x = 2 * p2.x - p1.x
     forceUpdate(); pushHistory()
   }
 
@@ -268,22 +265,15 @@ export function FigureEditorPage({ onBack }: { onBack: () => void }) {
           title="Segments List"
           icon={ListTree}
         />
-      </FloatingSidebar>
-
-      {selectedSeg && (
-        <div className="absolute left-14 top-28 z-[70] flex flex-col items-center gap-1 p-1.5 bg-[#15151a]/80 backdrop-blur-xl border border-white/10 rounded-full shadow-2xl">
-          <button onClick={handleFlip} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/10 text-gray-300 hover:text-white transition-all" title="Flip segment"><ArrowLeftRight className="w-3.5 h-3.5" /></button>
-          <div className="relative">
-            <input type="color" value={selectedSeg.color} onChange={(e) => { selectedSeg.color = e.target.value; forceUpdate(); pushHistory() }} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10" />
-            <button onClick={(e) => { const input = e.currentTarget.parentElement?.querySelector('input[type=color]') as HTMLInputElement; input?.click() }} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/10 transition-all" title="Change color">
-              <div className="w-4 h-4 rounded-full border border-white/20" style={{ background: selectedSeg.color }} />
-            </button>
-          </div>
-          <button onClick={cycleLineCap} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/10 text-gray-300 hover:text-white transition-all text-[9px] font-bold" title={`Line cap: ${selectedSeg.lineCap}`}>
-            {selectedSeg.lineCap === 'round' ? 'R' : selectedSeg.lineCap === 'square' ? 'S' : 'B'}
-          </button>
+        <button onClick={handleFlip} disabled={!selectedSeg} className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${selectedSeg ? 'text-gray-300 hover:text-white hover:bg-white/10' : 'text-gray-600'}`} title="Flip X (mirror point1 around point2)"><ArrowLeftRight className="w-4 h-4" /></button>
+        <div className="relative w-8 h-8 flex items-center justify-center">
+          <input type="color" value={selectedSeg?.color || '#d1d5db'} onChange={(e) => { if (selectedSeg) { selectedSeg.color = e.target.value; forceUpdate(); pushHistory() }}} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10" disabled={!selectedSeg} />
+          <button onClick={(e) => { const input = e.currentTarget.parentElement?.querySelector('input[type=color]') as HTMLInputElement; if (selectedSeg) input?.click() }} className={`w-7 h-7 rounded-full transition-all border ${selectedSeg ? 'border-white/30 hover:border-white/60 cursor-pointer' : 'border-white/10 cursor-not-allowed'}`} style={{ background: selectedSeg?.color || '#333' }} />
         </div>
-      )}
+        <button onClick={cycleLineCap} disabled={!selectedSeg} className={`w-8 h-8 flex items-center justify-center rounded-full transition-all text-[10px] font-bold ${selectedSeg ? 'text-gray-300 hover:text-white hover:bg-white/10' : 'text-gray-600'}`} title={`Line cap: ${selectedSeg?.lineCap || 'round'}`}>
+          {selectedSeg?.lineCap === 'round' ? 'R' : selectedSeg?.lineCap === 'square' ? 'S' : selectedSeg ? 'B' : '-'}
+        </button>
+      </FloatingSidebar>
 
       <SideDrawer side="left" activeTab={activeLeftTab} onClose={() => setActiveLeftTab(null)}>
         {activeLeftTab === "hierarchy" && <FigureHierarchyPanel />}
