@@ -23,6 +23,10 @@ export function FigureCanvasArea() {
     isPanning: false, startPanX: 0, startPanY: 0, startCamX: 0, startCamY: 0,
     startX: 0, startY: 0, startPointX: 0, startPointY: 0,
     isCreating: false, anchorX: 0, anchorY: 0,
+    isRotate: false, isStretch: false,
+    pivotIdx: -1, connectedPoints: [] as number[],
+    initialAngles: [] as number[], initialDists: [] as number[],
+    startAngle: 0, startDist: 0,
   })
   const cameraRef = useRef({ x: 0, y: 0, zoom: 1 })
 
@@ -360,6 +364,24 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
     return null
   }
 
+  const findConnectedPoints = (fig: any, pivotIdx: number): number[] => {
+    const visited = new Set<number>()
+    const queue = [pivotIdx]
+    visited.add(pivotIdx)
+    while (queue.length > 0) {
+      const idx = queue.shift()!
+      fig.segments.forEach((s: any) => {
+        const other = s.point1Index === idx ? s.point2Index : s.point2Index === idx ? s.point1Index : -1
+        if (other >= 0 && !visited.has(other)) {
+          visited.add(other)
+          queue.push(other)
+        }
+      })
+    }
+    const result = Array.from(visited)
+    return result.filter(i => i !== pivotIdx)
+  }
+
   const handlePointerDown = (e: React.PointerEvent) => {
     if (!figureRef.current) return
     const canvas = canvasRef.current
@@ -410,6 +432,35 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
       }
       setSelectedSegmentId(null)
       setSelectedPointIndex(null)
+    }
+
+    if (activeTool === 'rotate' || activeTool === 'stretch') {
+      const ptHit = hitTestPoint(world.x, world.y)
+      if (ptHit < 0) return
+      setSelectedPointIndex(ptHit)
+      setSelectedSegmentId(null)
+      const connected = findConnectedPoints(fig, ptHit)
+      const initialAngles = connected.map(i => Math.atan2(fig.points[i].y - fig.points[ptHit].y, fig.points[i].x - fig.points[ptHit].x))
+      const initialDists = connected.map(i => {
+        const dx = fig.points[i].x - fig.points[ptHit].x
+        const dy = fig.points[i].y - fig.points[ptHit].y
+        return Math.sqrt(dx * dx + dy * dy)
+      })
+      const startAngle = Math.atan2(world.y - fig.points[ptHit].y, world.x - fig.points[ptHit].x)
+      const startDist = Math.sqrt((world.x - fig.points[ptHit].x) ** 2 + (world.y - fig.points[ptHit].y) ** 2)
+      dragState.current = {
+        isDragging: true, isPoint: false, pointIndex: -1,
+        isSegment: false, segmentId: null,
+        isPanning: false, startPanX: 0, startPanY: 0, startCamX: 0, startCamY: 0,
+        startX: world.x, startY: world.y, startPointX: 0, startPointY: 0,
+        isCreating: false, anchorX: 0, anchorY: 0,
+        isRotate: activeTool === 'rotate', isStretch: activeTool === 'stretch',
+        pivotIdx: ptHit, connectedPoints: connected,
+        initialAngles, initialDists,
+        startAngle, startDist,
+      }
+      forceUpdateRef.current()
+      return
     }
 
     if (activeTool === 'line' || activeTool === 'circle' || activeTool === 'image') {
@@ -492,9 +543,37 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
           p1.x += dx; p1.y += dy
           p2.x += dx; p2.y += dy
           d.startX = world.x; d.startY = world.y
-          forceUpdate()
+          forceUpdateRef.current()
         }
       }
+    }
+
+    if (d.isDragging && d.isRotate && d.pivotIdx >= 0) {
+      const px = fig.points[d.pivotIdx].x
+      const py = fig.points[d.pivotIdx].y
+      const currentAngle = Math.atan2(world.y - py, world.x - px)
+      const angleDelta = currentAngle - d.startAngle
+      d.connectedPoints.forEach((ci, i) => {
+        const newAngle = d.initialAngles[i] + angleDelta
+        const dist = d.initialDists[i]
+        fig.points[ci].x = px + Math.cos(newAngle) * dist
+        fig.points[ci].y = py + Math.sin(newAngle) * dist
+      })
+      forceUpdateRef.current()
+    }
+
+    if (d.isDragging && d.isStretch && d.pivotIdx >= 0) {
+      const px = fig.points[d.pivotIdx].x
+      const py = fig.points[d.pivotIdx].y
+      const currentDist = Math.sqrt((world.x - px) ** 2 + (world.y - py) ** 2)
+      const scale = d.startDist > 0.01 ? currentDist / d.startDist : 1
+      d.connectedPoints.forEach((ci, i) => {
+        const angle = d.initialAngles[i]
+        const newDist = d.initialDists[i] * scale
+        fig.points[ci].x = px + Math.cos(angle) * newDist
+        fig.points[ci].y = py + Math.sin(angle) * newDist
+      })
+      forceUpdateRef.current()
     }
   }
 
