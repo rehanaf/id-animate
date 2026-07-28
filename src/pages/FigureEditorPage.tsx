@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react"
-import { ArrowLeft, ListTree, MousePointer2, PenTool, Circle, Square, Image as ImageIcon, SlidersHorizontal, Plus, Minus, Maximize, Move, Undo2, Redo2, Play, Pause, ChevronLeft, ChevronRight, Video, RotateCw, Shrink, Crosshair, ArrowLeftRight } from "lucide-react"
+import { ArrowLeft, ListTree, MousePointer2, PenTool, Circle, Square, Image as ImageIcon, SlidersHorizontal, Plus, Minus, Maximize, Move, Undo2, Redo2, Play, Pause, ChevronLeft, ChevronRight, Video, RotateCw, Shrink, Crosshair, ArrowLeftRight, Spline } from "lucide-react"
 import { useFigureEditor } from "@/context/FigureEditorContext"
 import { FigureAnimation } from "@/core/nodes/FigureAnimation"
 import { FigureCanvasArea } from "@/components/nodes/FigureCanvasArea"
@@ -117,6 +117,11 @@ export function FigureEditorPage({ onBack }: { onBack: () => void }) {
             className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${activeTool === 'modify' ? 'bg-cyan-500 text-white shadow-[0_0_15px_rgba(6,182,212,0.3)]' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
             title="Modify Point (single point, no FK)"
           ><Crosshair className="w-4 h-4" /></button>
+          <button
+            onClick={() => setActiveTool('curve')}
+            className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${activeTool === 'curve' ? 'bg-pink-500 text-white shadow-[0_0_15px_rgba(236,72,153,0.3)]' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+            title="Curve: add point on segment"
+          ><Spline className="w-4 h-4" /></button>
           <button
             onClick={() => setActiveTool('rotate')}
             className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${activeTool === 'rotate' ? 'bg-orange-500 text-white shadow-[0_0_15px_rgba(249,115,22,0.3)]' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}

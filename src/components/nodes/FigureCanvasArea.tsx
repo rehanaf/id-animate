@@ -449,7 +449,7 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
     if (isPlayingRef.current) setIsPlaying(false)
 
     const rootHit = hitTestPoint(world.x, world.y)
-    if (rootHit === 0 && e.button === 0 && activeTool !== 'line' && activeTool !== 'circle' && activeTool !== 'image') {
+    if (rootHit === 0 && e.button === 0 && activeTool !== 'line' && activeTool !== 'circle' && activeTool !== 'image' && activeTool !== 'curve') {
       const allConnected = findConnectedPoints(fig, 0)
       allConnected.push(0)
       const initPositions: Record<number, {x: number, y: number}> = {}
@@ -589,6 +589,38 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
       })
       forceUpdateRef.current()
       return
+    }
+
+    if (activeTool === 'curve') {
+      const segHit = hitTestSegment(world.x, world.y)
+      if (segHit) {
+        const seg = fig.getSegment(segHit)
+        if (!seg) return
+        const p1 = seg.getPoint1(fig)
+        const p2 = seg.getPoint2(fig)
+        if (!p1 || !p2) return
+        const mx = (p1.x + p2.x) / 2
+        const my = (p1.y + p2.y) / 2
+        const newIdx = fig.addPoint(mx, my)
+        const newType = seg.type
+        const newLayer = seg.layer
+        const p1Idx = seg.point1Index
+        const p2Idx = seg.point2Index
+        fig.removeSegment(segHit)
+        fig.createSegment(newType, p1Idx, newIdx)
+        const seg2 = fig.createSegment(newType, newIdx, p2Idx)
+        seg2.layer = newLayer + 0.5
+        setSelectedPointIndex(newIdx)
+        setSelectedSegmentId(null)
+        setDrag({
+          isDragging: true, isPoint: true, pointIndex: newIdx,
+          startX: world.x, startY: world.y,
+          startPointX: mx, startPointY: my,
+        })
+        forceUpdateRef.current()
+        pushHistoryRef.current()
+        return
+      }
     }
 
     if (activeTool === 'line' || activeTool === 'circle' || activeTool === 'image') {
