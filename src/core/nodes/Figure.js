@@ -36,9 +36,13 @@ export class Figure {
   }
 
   addSegment(type = 'line') {
-    const seg = new Segment(type);
     const p1Idx = this.addPoint(0, 0);
     const p2Idx = this.addPoint(30, 0);
+    return this.createSegment(type, p1Idx, p2Idx);
+  }
+
+  createSegment(type, p1Idx, p2Idx) {
+    const seg = new Segment(type);
     seg.point1Index = p1Idx;
     seg.point2Index = p2Idx;
     seg.layer = this.segments.length;

@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from "react"
 import { useFigureEditor } from "@/context/FigureEditorContext"
 import { FigureAnimation } from "@/core/nodes/FigureAnimation"
+import { Segment } from "@/core/nodes/Segment"
 
 export function FigureCanvasArea() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -21,7 +22,7 @@ export function FigureCanvasArea() {
     isSegment: false, segmentId: null as string | null,
     isPanning: false, startPanX: 0, startPanY: 0, startCamX: 0, startCamY: 0,
     startX: 0, startY: 0, startPointX: 0, startPointY: 0,
-    isCreating: false,
+    isCreating: false, anchorX: 0, anchorY: 0,
   })
   const cameraRef = useRef({ x: 0, y: 0, zoom: 1 })
 
@@ -417,22 +418,21 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
     }
 
     if (activeTool === 'line' || activeTool === 'circle' || activeTool === 'image') {
-      const newSeg = fig.addSegment(activeTool)
-      const p1 = fig.points[newSeg.point1Index]
-      p1.x = world.x; p1.y = world.y
-      const p2 = fig.points[newSeg.point2Index]
-      p2.x = world.x + 1; p2.y = world.y + 1
-      setSelectedSegmentId(newSeg.id)
-      setSelectedPointIndex(newSeg.point2Index)
+      const ptHit = hitTestPoint(world.x, world.y)
+      const p1Idx = ptHit >= 0 ? ptHit : fig.addPoint(world.x, world.y)
+      const p2Idx = fig.addPoint(world.x + 1, world.y + 1)
+      const seg = fig.createSegment(activeTool, p1Idx, p2Idx)
+      setSelectedSegmentId(seg.id)
+      setSelectedPointIndex(p2Idx)
       dragState.current = {
-        isDragging: true, isPoint: true, pointIndex: newSeg.point2Index,
+        isDragging: true, isPoint: true, pointIndex: p2Idx,
         isSegment: false, segmentId: null,
         isPanning: false, startPanX: 0, startPanY: 0, startCamX: 0, startCamY: 0,
         startX: world.x, startY: world.y,
-        startPointX: p2.x, startPointY: p2.y,
-        isCreating: true,
+        startPointX: world.x + 1, startPointY: world.y + 1,
+        isCreating: true, anchorX: world.x, anchorY: world.y,
       }
-      forceUpdate()
+      forceUpdateRef.current()
       return
     }
 
@@ -459,11 +459,12 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
       pt.x = d.startPointX + (world.x - d.startX)
       pt.y = d.startPointY + (world.y - d.startY)
 
-      if (d.isCreating) {
-        const otherIdx = d.pointIndex === 0 ? 1 : 0
-        if (fig.points[otherIdx]) {
-          fig.points[otherIdx].x = d.startPointX
-          fig.points[otherIdx].y = d.startPointY
+      if (d.isCreating && fig.segments.length > 0) {
+        const seg = fig.segments[fig.segments.length - 1]
+        const p1 = fig.points[seg.point1Index]
+        if (p1) {
+          p1.x = d.anchorX
+          p1.y = d.anchorY
         }
       }
 
