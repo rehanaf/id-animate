@@ -479,6 +479,10 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
       const initPositions: Record<number, {x: number, y: number}> = {}
       allConnected.forEach(i => { initPositions[i] = { x: fig.points[i].x, y: fig.points[i].y } })
       setSelectedPointIndex(0)
+      const connectedSeg = fig.segments.find(
+        s => s.point1Index === 0 || s.point2Index === 0
+      )
+      setSelectedSegmentId(connectedSeg ? connectedSeg.id : null)
       setDrag({
         isDragging: true, isPoint: true, pointIndex: 0,
         startX: world.x, startY: world.y,
@@ -499,7 +503,10 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
       const ptHit = hitTestPoint(world.x, world.y)
       if (ptHit > 0) {
         setSelectedPointIndex(ptHit)
-        setSelectedSegmentId(null)
+        const connectedSeg = fig.segments.find(
+          s => s.point1Index === ptHit || s.point2Index === ptHit
+        )
+        setSelectedSegmentId(connectedSeg ? connectedSeg.id : null)
         setDrag({
           isDragging: true, isPoint: true, pointIndex: ptHit,
           startX: world.x, startY: world.y,
@@ -515,7 +522,10 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
         const allConnected = findConnectedPoints(fig, ptHit)
         allConnected.push(ptHit)
         setSelectedPointIndex(ptHit)
-        setSelectedSegmentId(null)
+        const connectedSeg = fig.segments.find(
+          s => s.point1Index === ptHit || s.point2Index === ptHit
+        )
+        setSelectedSegmentId(connectedSeg ? connectedSeg.id : null)
         const initPositions: Record<number, {x: number, y: number}> = {}
         allConnected.forEach(i => { initPositions[i] = { x: fig.points[i].x, y: fig.points[i].y } })
         initPositions[ptHit] = { x: fig.points[ptHit].x, y: fig.points[ptHit].y }
@@ -574,7 +584,7 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
       }
       Object.keys(parentMap).forEach(k => addLocal(parseInt(k)))
       setSelectedPointIndex(ptHit)
-      setSelectedSegmentId(null)
+      setSelectedSegmentId(connectedSeg.id)
       setDrag({
         isDragging: true, isPoint: false, pointIndex: -1,
         isSegment: false, segmentId: null,
@@ -596,7 +606,10 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
       const ptHit = hitTestPoint(world.x, world.y)
       if (ptHit < 0) return
       setSelectedPointIndex(ptHit)
-      setSelectedSegmentId(null)
+      const segForStretch = fig.segments.find(
+        s => s.point1Index === ptHit || s.point2Index === ptHit
+      )
+      setSelectedSegmentId(segForStretch ? segForStretch.id : null)
       const connected = findConnectedPoints(fig, ptHit)
       const initialAngles = connected.map(i => Math.atan2(fig.points[i].y - fig.points[ptHit].y, fig.points[i].x - fig.points[ptHit].x))
       const initialDists = connected.map(i => {
