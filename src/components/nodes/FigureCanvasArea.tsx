@@ -485,7 +485,7 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
       }
     }
 
-    if (activeTool === 'point' || activeTool === 'select') {
+    if (activeTool === 'select') {
       const ptHit = hitTestPoint(world.x, world.y)
       if (ptHit >= 0) {
         const allConnected = findConnectedPoints(fig, ptHit)
@@ -497,37 +497,13 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
         initPositions[ptHit] = { x: fig.points[ptHit].x, y: fig.points[ptHit].y }
         setDrag({
           isDragging: true, isPoint: true, pointIndex: ptHit,
-          isSegment: false, segmentId: null,
-          isPanning: false, startPanX: 0, startPanY: 0, startCamX: 0, startCamY: 0,
           startX: world.x, startY: world.y,
           startPointX: fig.points[ptHit].x, startPointY: fig.points[ptHit].y,
-          isCreating: false, anchorX: 0, anchorY: 0,
-          isRotate: false, isStretch: false, pivotIdx: -1,
-          connectedPoints: allConnected, initialAngles: [], initialDists: [],
-          startAngle: 0, startDist: 0, childOffsets: [],
-          fkParent: {}, fkLocal: {},
+          connectedPoints: allConnected,
           fkMoveInit: initPositions,
         })
         return
       }
-    }
-
-    if (activeTool === 'select') {
-      const segHit = hitTestSegment(world.x, world.y)
-      if (segHit) {
-        setSelectedSegmentId(segHit)
-        setSelectedPointIndex(null)
-        setDrag({
-          isDragging: true, isPoint: false, pointIndex: -1,
-          isSegment: true, segmentId: segHit,
-          isPanning: false, startPanX: 0, startPanY: 0, startCamX: 0, startCamY: 0,
-          startX: world.x, startY: world.y,
-          startPointX: world.x, startPointY: world.y,
-          isCreating: false,
-        })
-        return
-      }
-      setSelectedSegmentId(null)
       setSelectedPointIndex(null)
     }
 
