@@ -13,6 +13,8 @@ export function FigureEditorPage({ onBack }: { onBack: () => void }) {
   const {
     figure, activeTool, setActiveTool,
     editorMode, setEditorMode,
+    selectedSegmentId, setSelectedSegmentId,
+    selectedPointIndex, setSelectedPointIndex,
     forceUpdate, pushHistory,
     undo, redo, canUndo, canRedo,
     isPlaying, setIsPlaying,
