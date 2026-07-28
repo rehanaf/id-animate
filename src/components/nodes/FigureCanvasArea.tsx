@@ -437,17 +437,17 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
 
     const rootHit = hitTestPoint(world.x, world.y)
     if (rootHit === 0 && e.button === 0 && activeTool !== 'line' && activeTool !== 'circle' && activeTool !== 'image') {
+      const allConnected = findConnectedPoints(fig, 0)
+      allConnected.push(0)
+      const initPositions: Record<number, {x: number, y: number}> = {}
+      allConnected.forEach(i => { initPositions[i] = { x: fig.points[i].x, y: fig.points[i].y } })
       setSelectedPointIndex(0)
       setDrag({
         isDragging: true, isPoint: true, pointIndex: 0,
-        isSegment: false, segmentId: null,
-        isPanning: false, startPanX: 0, startPanY: 0, startCamX: 0, startCamY: 0,
         startX: world.x, startY: world.y,
         startPointX: fig.points[0].x, startPointY: fig.points[0].y,
-        isCreating: false, anchorX: 0, anchorY: 0,
-        isRotate: false, isStretch: false, pivotIdx: -1,
-        connectedPoints: [], initialAngles: [], initialDists: [],
-        startAngle: 0, startDist: 0,
+        connectedPoints: allConnected,
+        fkMoveInit: initPositions,
       })
       forceUpdateRef.current()
       return
