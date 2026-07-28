@@ -458,6 +458,20 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
       return
     }
 
+    if (activeTool === 'modify') {
+      const ptHit = hitTestPoint(world.x, world.y)
+      if (ptHit > 0) {
+        setSelectedPointIndex(ptHit)
+        setSelectedSegmentId(null)
+        setDrag({
+          isDragging: true, isPoint: true, pointIndex: ptHit,
+          startX: world.x, startY: world.y,
+          startPointX: fig.points[ptHit].x, startPointY: fig.points[ptHit].y,
+        })
+        return
+      }
+    }
+
     if (activeTool === 'point' || activeTool === 'select') {
       const ptHit = hitTestPoint(world.x, world.y)
       if (ptHit >= 0) {
