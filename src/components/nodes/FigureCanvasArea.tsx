@@ -272,9 +272,10 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
       const z = cam.zoom
       fig.points.forEach((pt, i) => {
         const isPointSelected = i === selectedPtRef.current
+        const isRoot = i === 0
         ctx.beginPath()
         ctx.arc(pt.x, pt.y, (isPointSelected ? 7 : 5) / z, 0, Math.PI * 2)
-        ctx.fillStyle = isPointSelected ? '#facc15' : '#0ea5e9'
+        ctx.fillStyle = isPointSelected ? '#facc15' : isRoot ? '#ef4444' : '#0ea5e9'
         ctx.lineWidth = 1.5 / z
         ctx.strokeStyle = '#ffffff'
         ctx.stroke()
@@ -409,6 +410,24 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
 
     if (isPlayingRef.current) setIsPlaying(false)
 
+    const rootHit = hitTestPoint(world.x, world.y)
+    if (rootHit === 0 && e.button === 0) {
+      setSelectedPointIndex(0)
+      dragState.current = {
+        isDragging: true, isPoint: true, pointIndex: 0,
+        isSegment: false, segmentId: null,
+        isPanning: false, startPanX: 0, startPanY: 0, startCamX: 0, startCamY: 0,
+        startX: world.x, startY: world.y,
+        startPointX: fig.points[0].x, startPointY: fig.points[0].y,
+        isCreating: false, anchorX: 0, anchorY: 0,
+        isRotate: false, isStretch: false, pivotIdx: -1,
+        connectedPoints: [], initialAngles: [], initialDists: [],
+        startAngle: 0, startDist: 0,
+      }
+      forceUpdateRef.current()
+      return
+    }
+
     if (e.button === 1) {
       dragState.current = { isDragging: false, isPoint: false, pointIndex: -1, isSegment: false, segmentId: null, isPanning: true, startPanX: e.clientX, startPanY: e.clientY, startCamX: cameraRef.current.x, startCamY: cameraRef.current.y, startX: 0, startY: 0, startPointX: 0, startPointY: 0, isCreating: false }
       return
@@ -458,7 +477,7 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
       )
       if (!connectedSeg) return
       const pivotIdx = connectedSeg.point1Index === ptHit ? connectedSeg.point2Index : connectedSeg.point1Index
-      const chainPoints = findSubTree(fig, ptHit, pivotIdx)
+      const chainPoints = findSubTree(fig, ptHit, pivotIdx).filter(i => i !== 0)
       const px = fig.points[pivotIdx].x
       const py = fig.points[pivotIdx].y
       const startAngle = Math.atan2(world.y - py, world.x - px)
