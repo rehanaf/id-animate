@@ -516,6 +516,23 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
       }
     }
 
+    if (activeTool === 'point') {
+      const ptHit = hitTestPoint(world.x, world.y)
+      if (ptHit >= 0) {
+        setSelectedPointIndex(ptHit)
+        const connectedSeg = fig.segments.find(
+          s => s.point1Index === ptHit || s.point2Index === ptHit
+        )
+        setSelectedSegmentId(connectedSeg ? connectedSeg.id : null)
+        setDrag({
+          isDragging: true, isPoint: true, pointIndex: ptHit,
+          startX: world.x, startY: world.y,
+          startPointX: fig.points[ptHit].x, startPointY: fig.points[ptHit].y,
+        })
+        return
+      }
+    }
+
     if (activeTool === 'select') {
       const ptHit = hitTestPoint(world.x, world.y)
       if (ptHit >= 0) {
