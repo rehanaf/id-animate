@@ -3,7 +3,7 @@ import { Segment } from './Segment.js';
 export class Figure {
   constructor(name = 'Figure') {
     this.name = name;
-    this.points = [{ x: 0, y: -50 }, { x: 0, y: 50 }];
+    this.points = [{ x: 0, y: 0 }];
     this.segments = [];
     this.animations = [];
     this.canvasWidth = 800;
@@ -80,7 +80,7 @@ export class Figure {
 
   static fromJSON(data) {
     const fig = new Figure(data.name || 'Figure');
-    fig.points = data.points || [{ x: 0, y: -50 }, { x: 0, y: 50 }];
+    fig.points = data.points || [{ x: 0, y: 0 }];
     fig.segments = (data.segments || []).map(sd => Segment.fromJSON(sd));
     fig.animations = data.animations || [];
     fig.canvasWidth = data.canvasWidth || 800;

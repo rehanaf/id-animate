@@ -266,21 +266,16 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
       })
 
       const z = cam.zoom
-      const tool = activeToolRef.current
-      if (tool === 'select' || tool === 'point') {
-        fig.points.forEach((pt, i) => {
-          const isPointSelected = i === selectedPtRef.current
-          const isConnected = fig.segments.some(s => s.point1Index === i || s.point2Index === i)
-          if (!isConnected && !isPointSelected) return
-          ctx.beginPath()
-          ctx.arc(pt.x, pt.y, (isPointSelected ? 7 : 5) / z, 0, Math.PI * 2)
-          ctx.fillStyle = isPointSelected ? '#facc15' : '#0ea5e9'
-          ctx.lineWidth = 1.5 / z
-          ctx.strokeStyle = '#ffffff'
-          ctx.stroke()
-          ctx.fill()
-        })
-      }
+      fig.points.forEach((pt, i) => {
+        const isPointSelected = i === selectedPtRef.current
+        ctx.beginPath()
+        ctx.arc(pt.x, pt.y, (isPointSelected ? 7 : 5) / z, 0, Math.PI * 2)
+        ctx.fillStyle = isPointSelected ? '#facc15' : '#0ea5e9'
+        ctx.lineWidth = 1.5 / z
+        ctx.strokeStyle = '#ffffff'
+        ctx.stroke()
+        ctx.fill()
+      })
 
       ctx.restore()
     }
@@ -419,9 +414,12 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
 
     if (activeTool === 'line' || activeTool === 'circle' || activeTool === 'image') {
       const ptHit = hitTestPoint(world.x, world.y)
-      const p1Idx = ptHit >= 0 ? ptHit : fig.addPoint(world.x, world.y)
-      const p2Idx = fig.addPoint(world.x + 1, world.y + 1)
-      const seg = fig.createSegment(activeTool, p1Idx, p2Idx)
+      if (ptHit < 0) {
+        if (fig.points.length === 0) fig.addPoint(world.x, world.y)
+        return
+      }
+      const p2Idx = fig.addPoint(world.x, world.y)
+      const seg = fig.createSegment(activeTool, ptHit, p2Idx)
       setSelectedSegmentId(seg.id)
       setSelectedPointIndex(p2Idx)
       dragState.current = {
@@ -429,8 +427,8 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
         isSegment: false, segmentId: null,
         isPanning: false, startPanX: 0, startPanY: 0, startCamX: 0, startCamY: 0,
         startX: world.x, startY: world.y,
-        startPointX: world.x + 1, startPointY: world.y + 1,
-        isCreating: true, anchorX: world.x, anchorY: world.y,
+        startPointX: world.x, startPointY: world.y,
+        isCreating: true, anchorX: fig.points[ptHit].x, anchorY: fig.points[ptHit].y,
       }
       forceUpdateRef.current()
       return
