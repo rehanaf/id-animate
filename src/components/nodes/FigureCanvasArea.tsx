@@ -411,7 +411,7 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
     if (isPlayingRef.current) setIsPlaying(false)
 
     const rootHit = hitTestPoint(world.x, world.y)
-    if (rootHit === 0 && e.button === 0) {
+    if (rootHit === 0 && e.button === 0 && activeTool !== 'line' && activeTool !== 'circle' && activeTool !== 'image') {
       setSelectedPointIndex(0)
       dragState.current = {
         isDragging: true, isPoint: true, pointIndex: 0,
