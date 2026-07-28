@@ -94,20 +94,6 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
     const canvas = canvasRef.current
     if (!canvas) return
 
-    const handleWheel = (e: WheelEvent) => {
-      e.preventDefault()
-      const zoomDelta = 1 - e.deltaY * 0.002
-      const rect = canvas.getBoundingClientRect()
-      const newZoom = Math.max(0.1, Math.min(cameraRef.current.zoom * zoomDelta, 10))
-      const zoomFactor = newZoom / cameraRef.current.zoom
-      const mx = e.clientX - rect.left
-      const my = e.clientY - rect.top
-      cameraRef.current.x = mx - rect.width / 2 - (mx - rect.width / 2 - cameraRef.current.x) * zoomFactor
-      cameraRef.current.y = my - rect.height / 2 - (my - rect.height / 2 - cameraRef.current.y) * zoomFactor
-      cameraRef.current.zoom = newZoom
-    }
-    canvas.addEventListener('wheel', handleWheel, { passive: false })
-
     const handleResetCamera = () => {
       if (!canvas) return
       const rect = canvas.getBoundingClientRect()
@@ -350,7 +336,6 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
     render(performance.now())
 
     return () => {
-      canvas.removeEventListener('wheel', handleWheel)
       window.removeEventListener('reset-camera', handleResetCamera)
       window.removeEventListener('zoom-step', handleZoomStep)
       window.removeEventListener('pointerup', globalUp)
@@ -444,6 +429,22 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
     }
     const result = Array.from(visited)
     return result.filter(i => i !== pivotIdx)
+  }
+
+  const handleCanvasWheel = (e: React.WheelEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    e.preventDefault()
+    e.stopPropagation()
+    const zoomDelta = 1 - e.deltaY * 0.002
+    const rect = canvas.getBoundingClientRect()
+    const newZoom = Math.max(0.1, Math.min(cameraRef.current.zoom * zoomDelta, 10))
+    const zoomFactor = newZoom / cameraRef.current.zoom
+    const mx = e.clientX - rect.left
+    const my = e.clientY - rect.top
+    cameraRef.current.x = mx - rect.width / 2 - (mx - rect.width / 2 - cameraRef.current.x) * zoomFactor
+    cameraRef.current.y = my - rect.height / 2 - (my - rect.height / 2 - cameraRef.current.y) * zoomFactor
+    cameraRef.current.zoom = newZoom
   }
 
   const findSubTree = (fig: any, rootIdx: number, excludeIdx: number): number[] => {
@@ -864,6 +865,7 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
       ref={canvasRef}
       className="absolute inset-0 w-full h-full cursor-crosshair"
       style={{ touchAction: 'none' }}
+      onWheel={handleCanvasWheel}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
     />
