@@ -33,8 +33,24 @@ export function FigureCanvasArea() {
     fkMoveInit: {} as Record<number, {x: number, y: number}>,
   })
 
+  const defaultDrag = () => ({
+    isDragging: false, isPoint: false, pointIndex: -1,
+    isSegment: false, segmentId: null as string | null,
+    isPanning: false, startPanX: 0, startPanY: 0, startCamX: 0, startCamY: 0,
+    startX: 0, startY: 0, startPointX: 0, startPointY: 0,
+    isCreating: false, anchorX: 0, anchorY: 0,
+    isRotate: false, isStretch: false,
+    pivotIdx: -1, connectedPoints: [] as number[],
+    initialAngles: [] as number[], initialDists: [] as number[],
+    startAngle: 0, startDist: 0,
+    childOffsets: [] as {dx: number, dy: number}[],
+    fkParent: {} as Record<number, number>,
+    fkLocal: {} as Record<number, {angle: number, dist: number}>,
+    fkMoveInit: {} as Record<number, {x: number, y: number}>,
+  })
+
   const setDrag = (partial: Partial<typeof dragState.current>) => {
-    Object.assign(dragState.current, partial)
+    Object.assign(dragState.current, defaultDrag(), partial)
   }
   const cameraRef = useRef({ x: 0, y: 0, zoom: 1 })
 
