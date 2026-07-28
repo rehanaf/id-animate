@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback } from "react";
 import { Figure } from "@/core/nodes/Figure.js";
 import { Segment } from "@/core/nodes/Segment.js";
+import { FigureAnimation } from "@/core/nodes/FigureAnimation.js";
 import { AppStorage } from "@/core/Storage";
 
 interface FigureEditorContextType {
@@ -29,6 +30,8 @@ interface FigureEditorContextType {
   setFps: (f: number) => void;
   duration: number;
   setDuration: (d: number) => void;
+  currentAnimation: FigureAnimation | null;
+  setCurrentAnimation: (a: FigureAnimation | null) => void;
 }
 
 const FigureEditorContext = createContext<FigureEditorContextType | undefined>(undefined);
@@ -44,6 +47,7 @@ export function FigureEditorProvider({ children }: { children: React.ReactNode }
   const [currentTime, setCurrentTime] = useState(0);
   const [fps, setFps] = useState(12);
   const [duration, setDuration] = useState(0);
+  const [currentAnimation, setCurrentAnimation] = useState<FigureAnimation | null>(null);
 
   const [history, setHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
@@ -53,16 +57,25 @@ export function FigureEditorProvider({ children }: { children: React.ReactNode }
       const loadWorkspace = async () => {
         const defaultFig = new Figure();
         let finalFig = defaultFig;
+        let finalAnim: FigureAnimation | null = null;
         try {
           const saved = await AppStorage.getItem("figure_workspace");
           if (saved) {
             const parsed = Figure.fromJSONString(saved);
             if (parsed.segments.length > 0) finalFig = parsed;
           }
+          const savedAnim = await AppStorage.getItem("figure_anim_workspace");
+          if (savedAnim) {
+            finalAnim = FigureAnimation.fromJSONString(savedAnim);
+          }
         } catch (e) {
           console.error("Failed to load figure workspace:", e);
         }
         setFigure(finalFig);
+        if (finalAnim) {
+          setCurrentAnimation(finalAnim);
+          if (finalAnim.duration > 0) setDuration(finalAnim.duration);
+        }
       };
       loadWorkspace();
     }
@@ -73,6 +86,12 @@ export function FigureEditorProvider({ children }: { children: React.ReactNode }
       AppStorage.setItem("figure_workspace", figure.exportToJSON());
     }
   }, [revision, figure]);
+
+  React.useEffect(() => {
+    if (currentAnimation) {
+      AppStorage.setItem("figure_anim_workspace", currentAnimation.exportToJSON());
+    }
+  }, [revision, currentAnimation]);
 
   const forceUpdate = useCallback(() => setRevision(r => r + 1), []);
 
@@ -130,6 +149,7 @@ export function FigureEditorProvider({ children }: { children: React.ReactNode }
       currentTime, setCurrentTime,
       fps, setFps,
       duration, setDuration,
+      currentAnimation, setCurrentAnimation,
     }}>
       {children}
     </FigureEditorContext.Provider>

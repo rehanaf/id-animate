@@ -1,7 +1,6 @@
 import React, { useRef, useEffect } from "react"
 import { useFigureEditor } from "@/context/FigureEditorContext"
-import { Figure } from "@/core/nodes/Figure.js"
-import { Segment } from "@/core/nodes/Segment.js"
+import { FigureAnimation } from "@/core/nodes/FigureAnimation"
 
 export function FigureCanvasArea() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -11,9 +10,10 @@ export function FigureCanvasArea() {
     selectedPointIndex, setSelectedPointIndex,
     activeTool, setActiveTool,
     forceUpdate, pushHistory,
-    editorMode, isPlaying,
+    editorMode, isPlaying, setIsPlaying,
     currentTime, setCurrentTime,
-    fps, duration,
+    fps, duration, setDuration,
+    currentAnimation, setCurrentAnimation,
   } = useFigureEditor()
 
   const dragState = useRef({
@@ -24,15 +24,30 @@ export function FigureCanvasArea() {
     isCreating: false,
   })
   const cameraRef = useRef({ x: 0, y: 0, zoom: 1 })
+
   const activeToolRef = useRef(activeTool)
   const figureRef = useRef(figure)
   const selectedSegIdRef = useRef(selectedSegmentId)
   const selectedPtRef = useRef(selectedPointIndex)
+  const editorModeRef = useRef(editorMode)
+  const isPlayingRef = useRef(isPlaying)
+  const currentTimeRef = useRef(currentTime)
+  const fpsRef = useRef(fps)
+  const durationRef = useRef(duration)
+  const currentAnimRef = useRef(currentAnimation)
+
+  const savedPointsRef = useRef<{x: number, y: number}[] | null>(null)
 
   useEffect(() => { activeToolRef.current = activeTool }, [activeTool])
   useEffect(() => { figureRef.current = figure }, [figure])
   useEffect(() => { selectedSegIdRef.current = selectedSegmentId }, [selectedSegmentId])
   useEffect(() => { selectedPtRef.current = selectedPointIndex }, [selectedPointIndex])
+  useEffect(() => { editorModeRef.current = editorMode }, [editorMode])
+  useEffect(() => { isPlayingRef.current = isPlaying }, [isPlaying])
+  useEffect(() => { currentTimeRef.current = currentTime }, [currentTime])
+  useEffect(() => { fpsRef.current = fps }, [fps])
+  useEffect(() => { durationRef.current = duration }, [duration])
+  useEffect(() => { currentAnimRef.current = currentAnimation }, [currentAnimation])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -77,18 +92,27 @@ export function FigureCanvasArea() {
 
     const globalUp = () => {
       if (dragState.current.isDragging) {
+        const wasCreating = dragState.current.isCreating
         dragState.current.isDragging = false
-        pushHistory()
+        if (wasCreating) {
+          pushHistory()
+        }
       }
     }
     window.addEventListener('pointerup', globalUp)
     window.addEventListener('pointercancel', globalUp)
 
     let animId: number
-    const render = () => {
+    let lastTime = performance.now()
+
+    const render = (now: number) => {
       animId = requestAnimationFrame(render)
       const fig = figureRef.current
       if (!fig || !canvas) return
+
+      const dt = (now - lastTime) / 1000
+      lastTime = now
+
       const ctx = canvas.getContext('2d')
       if (!ctx) return
 
@@ -102,6 +126,29 @@ export function FigureCanvasArea() {
       }
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
       ctx.clearRect(0, 0, rect.width, rect.height)
+
+      // Animation playback
+      if (editorModeRef.current === "animate" && currentAnimRef.current) {
+        if (isPlayingRef.current) {
+          let newTime = currentTimeRef.current + dt
+          if (durationRef.current > 0) {
+            if (newTime > durationRef.current) {
+              newTime %= durationRef.current
+            }
+          }
+          if (!dragState.current.isDragging) {
+            setCurrentTime(newTime)
+            savedPointsRef.current = null
+          }
+        }
+        if (!dragState.current.isDragging) {
+          const anim = currentAnimRef.current
+          if (anim) {
+            savedPointsRef.current = fig.points.map(p => ({ x: p.x, y: p.y }))
+            anim.applyToFigure(fig, currentTimeRef.current)
+          }
+        }
+      }
 
       const cam = cameraRef.current
       ctx.save()
@@ -201,7 +248,8 @@ export function FigureCanvasArea() {
       })
 
       const z = cam.zoom
-      if (activeToolRef.current === 'select' || activeToolRef.current === 'point') {
+      const tool = activeToolRef.current
+      if (tool === 'select' || tool === 'point') {
         fig.points.forEach((pt, i) => {
           const isPointSelected = i === selectedPtRef.current
           const isConnected = fig.segments.some(s => s.point1Index === i || s.point2Index === i)
@@ -218,7 +266,7 @@ export function FigureCanvasArea() {
 
       ctx.restore()
     }
-    render()
+    render(performance.now())
 
     return () => {
       canvas.removeEventListener('wheel', handleWheel)
@@ -308,6 +356,8 @@ export function FigureCanvasArea() {
     const world = screenToWorld(e.clientX, e.clientY)
     const fig = figureRef.current
 
+    if (isPlayingRef.current) setIsPlaying(false)
+
     if (e.button === 1) {
       dragState.current = { isDragging: false, isPoint: false, pointIndex: -1, isSegment: false, segmentId: null, isPanning: true, startPanX: e.clientX, startPanY: e.clientY, startCamX: cameraRef.current.x, startCamY: cameraRef.current.y, startX: 0, startY: 0, startPointX: 0, startPointY: 0, isCreating: false }
       return
@@ -351,13 +401,10 @@ export function FigureCanvasArea() {
 
     if (activeTool === 'line' || activeTool === 'circle' || activeTool === 'image') {
       const newSeg = fig.addSegment(activeTool)
-      const newIdx = fig.segments.length - 1
       const p1 = fig.points[newSeg.point1Index]
-      p1.x = world.x
-      p1.y = world.y
+      p1.x = world.x; p1.y = world.y
       const p2 = fig.points[newSeg.point2Index]
-      p2.x = world.x + 1
-      p2.y = world.y + 1
+      p2.x = world.x + 1; p2.y = world.y + 1
       setSelectedSegmentId(newSeg.id)
       setSelectedPointIndex(newSeg.point2Index)
       dragState.current = {
@@ -373,14 +420,7 @@ export function FigureCanvasArea() {
     }
 
     if (e.button === 0) {
-      dragState.current = {
-        isDragging: false, isPoint: false, pointIndex: -1,
-        isSegment: false, segmentId: null,
-        isPanning: true, startPanX: e.clientX, startPanY: e.clientY,
-        startCamX: cameraRef.current.x, startCamY: cameraRef.current.y,
-        startX: 0, startY: 0, startPointX: 0, startPointY: 0,
-        isCreating: false,
-      }
+      dragState.current = { isDragging: false, isPoint: false, pointIndex: -1, isSegment: false, segmentId: null, isPanning: true, startPanX: e.clientX, startPanY: e.clientY, startCamX: cameraRef.current.x, startCamY: cameraRef.current.y, startX: 0, startY: 0, startPointX: 0, startPointY: 0, isCreating: false }
     }
   }
 
@@ -392,15 +432,16 @@ export function FigureCanvasArea() {
     const fig = figureRef.current
 
     if (d.isPanning) {
-      const rect = canvas.getBoundingClientRect()
       cameraRef.current.x = d.startCamX + (e.clientX - d.startPanX)
       cameraRef.current.y = d.startCamY + (e.clientY - d.startPanY)
       return
     }
 
     if (d.isDragging && d.isPoint && d.pointIndex >= 0 && fig.points[d.pointIndex]) {
-      fig.points[d.pointIndex].x = d.startPointX + (world.x - d.startX)
-      fig.points[d.pointIndex].y = d.startPointY + (world.y - d.startY)
+      const pt = fig.points[d.pointIndex]
+      pt.x = d.startPointX + (world.x - d.startX)
+      pt.y = d.startPointY + (world.y - d.startY)
+
       if (d.isCreating) {
         const otherIdx = d.pointIndex === 0 ? 1 : 0
         if (fig.points[otherIdx]) {
@@ -408,6 +449,19 @@ export function FigureCanvasArea() {
           fig.points[otherIdx].y = d.startPointY
         }
       }
+
+      if (editorModeRef.current === 'animate' && !d.isCreating) {
+        let anim = currentAnimRef.current
+        if (!anim) {
+          anim = new FigureAnimation('Animation')
+          setCurrentAnimation(anim)
+          currentAnimRef.current = anim
+        }
+        const time = currentTimeRef.current
+        anim.setPointPose(time, d.pointIndex, pt.x, pt.y)
+        setDuration(Math.max(durationRef.current, time))
+      }
+
       forceUpdate()
     }
 
