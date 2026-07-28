@@ -54,6 +54,9 @@ export function FigureCanvasArea() {
   }
   const cameraRef = useRef({ x: 0, y: 0, zoom: 1 })
 
+  const activePointers = useRef(new Map<number, {x: number, y: number}>())
+  const pinchState = useRef<{dist: number, cam: {x: number, y: number, zoom: number}} | null>(null)
+
   const activeToolRef = useRef(activeTool)
   const figureRef = useRef(figure)
   const selectedSegIdRef = useRef(selectedSegmentId)
@@ -117,7 +120,9 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
     }
     window.addEventListener("zoom-step", handleZoomStep)
 
-    const globalUp = () => {
+    const globalUp = (e: PointerEvent) => {
+      activePointers.current.delete(e.pointerId)
+      pinchState.current = null
       if (dragState.current.isDragging || dragState.current.isPanning) {
         const wasCreating = dragState.current.isCreating
         dragState.current.isDragging = false
@@ -135,6 +140,7 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
     }
     window.addEventListener('pointerup', globalUp)
     window.addEventListener('pointercancel', globalUp)
+    window.addEventListener('blur', () => { activePointers.current.clear(); pinchState.current = null })
 
     let animId: number
     let lastTime = performance.now()
@@ -474,6 +480,21 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
 
     if (isPlayingRef.current) setIsPlaying(false)
 
+    activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+    if (activePointers.current.size === 2) {
+      const pts = Array.from(activePointers.current.values())
+      const dx = pts[0].x - pts[1].x
+      const dy = pts[0].y - pts[1].y
+      pinchState.current = {
+        dist: Math.sqrt(dx * dx + dy * dy),
+        cam: { x: cameraRef.current.x, y: cameraRef.current.y, zoom: cameraRef.current.zoom },
+      }
+      dragState.current.isDragging = false
+      dragState.current.isPanning = false
+      return
+    }
+    if (activePointers.current.size > 2) return
+
     const rootHit = hitTestPoint(world.x, world.y)
     if (rootHit === 0 && e.button === 0 && activeTool !== 'line' && activeTool !== 'circle' && activeTool !== 'image' && activeTool !== 'curve') {
       const allConnected = findConnectedPoints(fig, 0)
@@ -745,6 +766,22 @@ useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
     const world = screenToWorld(e.clientX, e.clientY)
     const d = dragState.current
     const fig = figureRef.current
+
+    activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+    if (activePointers.current.size === 2 && pinchState.current) {
+      const pts = Array.from(activePointers.current.values())
+      const dx = pts[0].x - pts[1].x
+      const dy = pts[0].y - pts[1].y
+      const dist = Math.sqrt(dx * dx + dy * dy)
+      const scale = dist / pinchState.current.dist
+      cameraRef.current.zoom = Math.max(0.1, Math.min(pinchState.current.cam.zoom * scale, 10))
+      const mx = (pts[0].x + pts[1].x) / 2
+      const my = (pts[0].y + pts[1].y) / 2
+      const rect = canvas.getBoundingClientRect()
+      cameraRef.current.x = pinchState.current.cam.x + (mx - rect.width / 2 - pinchState.current.cam.x) * (1 - scale)
+      cameraRef.current.y = pinchState.current.cam.y + (my - rect.height / 2 - pinchState.current.cam.y) * (1 - scale)
+      return
+    }
 
     if (d.isPanning) {
       cameraRef.current.x = d.startCamX + (e.clientX - d.startPanX)
