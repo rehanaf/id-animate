@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react"
-import { ArrowLeft, ListTree, MousePointer2, PenTool, Circle, Square, Image as ImageIcon, SlidersHorizontal, Plus, Minus, Maximize, Move, Undo2, Redo2, Play, Pause, ChevronLeft, ChevronRight, Video, RotateCw, Shrink, Crosshair } from "lucide-react"
+import { ArrowLeft, ListTree, MousePointer2, PenTool, Circle, Square, Image as ImageIcon, SlidersHorizontal, Plus, Minus, Maximize, Move, Undo2, Redo2, Play, Pause, ChevronLeft, ChevronRight, Video, RotateCw, Shrink, Crosshair, ArrowLeftRight } from "lucide-react"
 import { useFigureEditor } from "@/context/FigureEditorContext"
 import { FigureAnimation } from "@/core/nodes/FigureAnimation"
 import { FigureCanvasArea } from "@/components/nodes/FigureCanvasArea"
@@ -20,6 +20,28 @@ export function FigureEditorPage({ onBack }: { onBack: () => void }) {
     fps, duration, setDuration,
     currentAnimation, setCurrentAnimation,
   } = useFigureEditor()
+
+  const selectedSeg = selectedSegmentId && figure ? figure.getSegment(selectedSegmentId) : null
+
+  const handleFlip = () => {
+    if (!selectedSeg) return
+    const p1 = selectedSeg.getPoint1(figure)
+    const p2 = selectedSeg.getPoint2(figure)
+    if (!p1 || !p2) return
+    const mx = (p1.x + p2.x) / 2; const my = (p1.y + p2.y) / 2
+    const dx = p1.x - mx; const dy = p1.y - my
+    p1.x = mx - dx; p1.y = my - dy
+    p2.x = mx + dx; p2.y = my + dy
+    forceUpdate(); pushHistory()
+  }
+
+  const cycleLineCap = () => {
+    if (!selectedSeg) return
+    const caps = ['round', 'square', 'butt'] as const
+    const idx = caps.indexOf(selectedSeg.lineCap)
+    selectedSeg.lineCap = caps[(idx + 1) % caps.length]
+    forceUpdate(); pushHistory()
+  }
 
   const [activeLeftTab, setActiveLeftTab] = useState<string | null>(null)
   const [activeRightTab, setActiveRightTab] = useState<string | null>(null)
@@ -244,6 +266,20 @@ export function FigureEditorPage({ onBack }: { onBack: () => void }) {
           title="Segments List"
           icon={ListTree}
         />
+        {selectedSeg && (
+          <div className="flex flex-col items-center gap-1 mt-2 p-1.5 bg-[#15151a]/80 backdrop-blur-xl border border-white/10 rounded-full shadow-2xl">
+            <button onClick={handleFlip} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/10 text-gray-300 hover:text-white transition-all" title="Flip segment"><ArrowLeftRight className="w-3.5 h-3.5" /></button>
+            <div className="relative">
+              <input ref={colorPickerRef} type="color" value={selectedSeg.color} onChange={(e) => { selectedSeg.color = e.target.value; forceUpdate(); pushHistory() }} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10" />
+              <button onClick={() => colorPickerRef.current?.click()} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/10 transition-all" title="Change color">
+                <div className="w-4 h-4 rounded-full border border-white/20" style={{ background: selectedSeg.color }} />
+              </button>
+            </div>
+            <button onClick={cycleLineCap} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/10 text-gray-300 hover:text-white transition-all text-[9px] font-bold" title={`Line cap: ${selectedSeg.lineCap}`}>
+              {selectedSeg.lineCap === 'round' ? 'R' : selectedSeg.lineCap === 'square' ? 'S' : 'B'}
+            </button>
+          </div>
+        )}
       </FloatingSidebar>
 
       <SideDrawer side="left" activeTab={activeLeftTab} onClose={() => setActiveLeftTab(null)}>
