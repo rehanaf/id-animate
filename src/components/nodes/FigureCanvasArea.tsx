@@ -35,6 +35,12 @@ export function FigureCanvasArea() {
   const fpsRef = useRef(fps)
   const durationRef = useRef(duration)
   const currentAnimRef = useRef(currentAnimation)
+  const pushHistoryRef = useRef(pushHistory)
+  const forceUpdateRef = useRef(forceUpdate)
+  const setCurrentTimeRef = useRef(setCurrentTime)
+  const setDurationRef = useRef(setDuration)
+  const setCurrentAnimationRef = useRef(setCurrentAnimation)
+  const setIsPlayingRef2 = useRef(setIsPlaying)
 
   const savedPointsRef = useRef<{x: number, y: number}[] | null>(null)
 
@@ -48,6 +54,12 @@ export function FigureCanvasArea() {
   useEffect(() => { fpsRef.current = fps }, [fps])
   useEffect(() => { durationRef.current = duration }, [duration])
   useEffect(() => { currentAnimRef.current = currentAnimation }, [currentAnimation])
+useEffect(() => { pushHistoryRef.current = pushHistory }, [pushHistory])
+useEffect(() => { forceUpdateRef.current = forceUpdate }, [forceUpdate])
+useEffect(() => { setCurrentTimeRef.current = setCurrentTime }, [setCurrentTime])
+useEffect(() => { setDurationRef.current = setDuration }, [setDuration])
+useEffect(() => { setCurrentAnimationRef.current = setCurrentAnimation }, [setCurrentAnimation])
+useEffect(() => { setIsPlayingRef2.current = setIsPlaying }, [setIsPlaying])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -91,11 +103,16 @@ export function FigureCanvasArea() {
     window.addEventListener("zoom-step", handleZoomStep)
 
     const globalUp = () => {
-      if (dragState.current.isDragging) {
+      if (dragState.current.isDragging || dragState.current.isPanning) {
         const wasCreating = dragState.current.isCreating
         dragState.current.isDragging = false
+        dragState.current.isPanning = false
+        dragState.current.bone = null
+        dragState.current.segmentId = null
+        dragState.current.isSegment = false
+        dragState.current.isPoint = false
         if (wasCreating) {
-          pushHistory()
+          pushHistoryRef.current()
         }
       }
     }
@@ -137,7 +154,7 @@ export function FigureCanvasArea() {
             }
           }
           if (!dragState.current.isDragging) {
-            setCurrentTime(newTime)
+            setCurrentTimeRef.current(newTime)
             savedPointsRef.current = null
           }
         }
@@ -454,15 +471,15 @@ export function FigureCanvasArea() {
         let anim = currentAnimRef.current
         if (!anim) {
           anim = new FigureAnimation('Animation')
-          setCurrentAnimation(anim)
+          setCurrentAnimationRef.current(anim)
           currentAnimRef.current = anim
         }
         const time = currentTimeRef.current
         anim.setPointPose(time, d.pointIndex, pt.x, pt.y)
-        setDuration(Math.max(durationRef.current, time))
+        setDurationRef.current(Math.max(durationRef.current, time))
       }
 
-      forceUpdate()
+      forceUpdateRef.current()
     }
 
     if (d.isDragging && d.isSegment && d.segmentId) {

@@ -46,6 +46,7 @@ export function FigureEditorPage({ onBack }: { onBack: () => void }) {
     setEditorMode(mode)
     if (mode === 'figure') {
       setActiveTool('select')
+      setCurrentTime(0)
     }
   }
 
