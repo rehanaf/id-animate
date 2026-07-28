@@ -266,21 +266,22 @@ export function FigureEditorPage({ onBack }: { onBack: () => void }) {
           title="Segments List"
           icon={ListTree}
         />
-        {selectedSeg && (
-          <div className="flex flex-col items-center gap-1 mt-2 p-1.5 bg-[#15151a]/80 backdrop-blur-xl border border-white/10 rounded-full shadow-2xl">
-            <button onClick={handleFlip} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/10 text-gray-300 hover:text-white transition-all" title="Flip segment"><ArrowLeftRight className="w-3.5 h-3.5" /></button>
-            <div className="relative">
-              <input ref={colorPickerRef} type="color" value={selectedSeg.color} onChange={(e) => { selectedSeg.color = e.target.value; forceUpdate(); pushHistory() }} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10" />
-              <button onClick={() => colorPickerRef.current?.click()} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/10 transition-all" title="Change color">
-                <div className="w-4 h-4 rounded-full border border-white/20" style={{ background: selectedSeg.color }} />
-              </button>
-            </div>
-            <button onClick={cycleLineCap} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/10 text-gray-300 hover:text-white transition-all text-[9px] font-bold" title={`Line cap: ${selectedSeg.lineCap}`}>
-              {selectedSeg.lineCap === 'round' ? 'R' : selectedSeg.lineCap === 'square' ? 'S' : 'B'}
+      </FloatingSidebar>
+
+      {selectedSeg && (
+        <div className="absolute left-14 top-28 z-[70] flex flex-col items-center gap-1 p-1.5 bg-[#15151a]/80 backdrop-blur-xl border border-white/10 rounded-full shadow-2xl">
+          <button onClick={handleFlip} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/10 text-gray-300 hover:text-white transition-all" title="Flip segment"><ArrowLeftRight className="w-3.5 h-3.5" /></button>
+          <div className="relative">
+            <input type="color" value={selectedSeg.color} onChange={(e) => { selectedSeg.color = e.target.value; forceUpdate(); pushHistory() }} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10" />
+            <button onClick={(e) => { const input = e.currentTarget.parentElement?.querySelector('input[type=color]') as HTMLInputElement; input?.click() }} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/10 transition-all" title="Change color">
+              <div className="w-4 h-4 rounded-full border border-white/20" style={{ background: selectedSeg.color }} />
             </button>
           </div>
-        )}
-      </FloatingSidebar>
+          <button onClick={cycleLineCap} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/10 text-gray-300 hover:text-white transition-all text-[9px] font-bold" title={`Line cap: ${selectedSeg.lineCap}`}>
+            {selectedSeg.lineCap === 'round' ? 'R' : selectedSeg.lineCap === 'square' ? 'S' : 'B'}
+          </button>
+        </div>
+      )}
 
       <SideDrawer side="left" activeTab={activeLeftTab} onClose={() => setActiveLeftTab(null)}>
         {activeLeftTab === "hierarchy" && <FigureHierarchyPanel />}
