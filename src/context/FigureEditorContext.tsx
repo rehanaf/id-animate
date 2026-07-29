@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, { createContext, useContext, useState, useCallback, useRef } from "react";
 import { Figure } from "@/core/nodes/Figure.js";
 import { Segment } from "@/core/nodes/Segment.js";
 import { FigureAnimation } from "@/core/nodes/FigureAnimation.js";
@@ -11,6 +11,9 @@ interface FigureEditorContextType {
   setSelectedSegmentId: (id: string | null) => void;
   selectedPointIndex: number | null;
   setSelectedPointIndex: (idx: number | null) => void;
+  pointModes: Record<number, 'dynamic' | 'static'>;
+  setPointModes: (m: Record<number, 'dynamic' | 'static'>) => void;
+  togglePointMode: (idx: number) => void;
   editorMode: "figure" | "animate";
   setEditorMode: (mode: "figure" | "animate") => void;
   activeTool: string;
@@ -48,9 +51,82 @@ export function FigureEditorProvider({ children, initialMode }: { children: Reac
   const [fps, setFps] = useState(12);
   const [duration, setDuration] = useState(0);
   const [currentAnimation, setCurrentAnimation] = useState<FigureAnimation | null>(null);
+  const [pointModes, setPointModes] = useState<Record<number, 'dynamic' | 'static'>>({});
+  const manualOverrideRef = useRef(new Set<number>())
+
+  const detectCyclePoints = useCallback((fig: Figure): Set<number> => {
+    const n = fig.points.length
+    if (n < 3) return new Set()
+    const adj: number[][] = Array.from({ length: n }, () => [])
+    for (const seg of fig.segments) {
+      adj[seg.point1Index].push(seg.point2Index)
+      adj[seg.point2Index].push(seg.point1Index)
+    }
+    const visited = new Array(n).fill(false)
+    const parent = new Array(n).fill(-1)
+    const inStack = new Array(n).fill(false)
+    const cyclePoints = new Set<number>()
+
+    function dfs(node: number) {
+      visited[node] = true
+      inStack[node] = true
+      for (const nb of adj[node]) {
+        if (!visited[nb]) {
+          parent[nb] = node
+          dfs(nb)
+        } else if (inStack[nb] && nb !== parent[node]) {
+          let curr = node
+          const cycle: number[] = [nb]
+          while (curr !== nb) {
+            cycle.push(curr)
+            curr = parent[curr]
+          }
+          const hub = Math.min(...cycle)
+          for (const pt of cycle) {
+            if (pt !== hub) cyclePoints.add(pt)
+          }
+        }
+      }
+      inStack[node] = false
+    }
+
+    for (let i = 0; i < n; i++) {
+      if (!visited[i]) dfs(i)
+    }
+    return cyclePoints
+  }, [])
+
+  const updatePointModes = useCallback((fig: Figure) => {
+    const staticPts = detectCyclePoints(fig)
+    const modes: Record<number, 'dynamic' | 'static'> = {}
+    for (let i = 0; i < fig.points.length; i++) {
+      if (manualOverrideRef.current.has(i)) continue
+      if (staticPts.has(i)) modes[i] = 'static'
+    }
+    setPointModes(prev => {
+      const next = { ...prev }
+      for (let i = 0; i < fig.points.length; i++) {
+        if (manualOverrideRef.current.has(i)) continue
+        if (staticPts.has(i)) next[i] = 'static'
+        else delete next[i]
+      }
+      return next
+    })
+  }, [detectCyclePoints])
+
+  const togglePointMode = useCallback((idx: number) => {
+    manualOverrideRef.current.add(idx)
+    setPointModes(prev => ({
+      ...prev,
+      [idx]: prev[idx] === 'static' ? 'dynamic' : 'static'
+    }))
+  }, [])
 
   const [history, setHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
+
+  const figKey = initialMode === "animate" ? "anim_figure_workspace" : "figure_workspace"
+  const animKey = initialMode === "animate" ? "anim_figure_anim_workspace" : "figure_anim_workspace"
 
   React.useEffect(() => {
     if (!figure) {
@@ -59,12 +135,12 @@ export function FigureEditorProvider({ children, initialMode }: { children: Reac
         let finalFig = defaultFig;
         let finalAnim: FigureAnimation | null = null;
         try {
-          const saved = await AppStorage.getItem("figure_workspace");
+          const saved = await AppStorage.getItem(figKey);
           if (saved) {
             const parsed = Figure.fromJSONString(saved);
             if (parsed.segments.length > 0) finalFig = parsed;
           }
-          const savedAnim = await AppStorage.getItem("figure_anim_workspace");
+          const savedAnim = await AppStorage.getItem(animKey);
           if (savedAnim) {
             finalAnim = FigureAnimation.fromJSONString(savedAnim);
           }
@@ -72,6 +148,7 @@ export function FigureEditorProvider({ children, initialMode }: { children: Reac
           console.error("Failed to load figure workspace:", e);
         }
         setFigure(finalFig);
+        updatePointModes(finalFig);
         if (finalAnim) {
           setCurrentAnimation(finalAnim);
           if (finalAnim.duration > 0) setDuration(finalAnim.duration);
@@ -79,19 +156,23 @@ export function FigureEditorProvider({ children, initialMode }: { children: Reac
       };
       loadWorkspace();
     }
-  }, [figure]);
+  }, [figure, figKey, animKey]);
 
   React.useEffect(() => {
     if (figure) {
-      AppStorage.setItem("figure_workspace", figure.exportToJSON());
+      AppStorage.setItem(figKey, figure.exportToJSON());
     }
-  }, [revision, figure]);
+  }, [revision, figure, figKey]);
+
+  React.useEffect(() => {
+    if (figure) updatePointModes(figure);
+  }, [revision, figure, updatePointModes]);
 
   React.useEffect(() => {
     if (currentAnimation) {
-      AppStorage.setItem("figure_anim_workspace", currentAnimation.exportToJSON());
+      AppStorage.setItem(animKey, currentAnimation.exportToJSON());
     }
-  }, [revision, currentAnimation]);
+  }, [revision, currentAnimation, animKey]);
 
   const forceUpdate = useCallback(() => setRevision(r => r + 1), []);
 
@@ -150,6 +231,8 @@ export function FigureEditorProvider({ children, initialMode }: { children: Reac
       fps, setFps,
       duration, setDuration,
       currentAnimation, setCurrentAnimation,
+      pointModes, setPointModes,
+      togglePointMode,
     }}>
       {children}
     </FigureEditorContext.Provider>

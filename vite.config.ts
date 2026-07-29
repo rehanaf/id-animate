@@ -11,4 +11,12 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  server: {
+    host: true,
+    allowedHosts: [
+      "raphael.li-barometric.ts.net",
+      "raphael.test",
+      "vite-raphael.zet.web.id",
+    ],
+  },
 })

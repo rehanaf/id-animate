@@ -12,6 +12,7 @@ import { StatusBar } from '@capacitor/status-bar'
 
 import { FigureEditorProvider } from "@/context/FigureEditorContext"
 import { FigureEditorPage } from "@/pages/FigureEditorPage"
+import { AnimationEditorPage } from "@/pages/AnimationEditorPage"
 
 export interface ProjectGroup {
   id: string
@@ -117,7 +118,7 @@ export function App() {
         const p: Project = {
           id: newId,
           name: file.name.replace(".zip", ""),
-          type: "animation",
+          type: "figure-animation",
           canvasWidth: 800,
           canvasHeight: 600,
           fps: 8,
@@ -325,10 +326,11 @@ export function App() {
   }
 
   const handleCreateProject = () => {
+    const projType = activeTab === "animation" ? "figure-animation" : "figure"
     const newProj: Project = {
       id: Date.now().toString(),
-      name: newProjName || "New Figure",
-      type: "figure",
+      name: newProjName || `New ${activeTab === "animation" ? "Animation" : "Figure"}`,
+      type: projType,
       canvasWidth: Number(newProjWidth) || 800,
       canvasHeight: Number(newProjHeight) || 600,
       fps: Number(newProjFps) || 8,
@@ -341,28 +343,72 @@ export function App() {
   }
 
   const [initialEditorMode, setInitialEditorMode] = useState<"figure" | "animate">("figure")
+  const [editorView, setEditorView] = useState<"figure" | "animate">("figure")
 
   const handleOpenProject = async (proj: Project) => {
     try {
       await AppStorage.setItem("active_project_id", proj.id);
+      const isAnim = proj.type === "figure-animation"
+      const wsKey = isAnim ? "anim_figure_workspace" : "figure_workspace"
       if (proj.data) {
         const rawData = typeof proj.data === "string" ? proj.data : JSON.stringify(proj.data);
-        await AppStorage.setItem("figure_workspace", rawData);
+        await AppStorage.setItem(wsKey, rawData);
       } else {
-        await AppStorage.setItem("figure_workspace", "");
+        await AppStorage.setItem(wsKey, "");
       }
       setActiveProjectId(proj.id);
-      setInitialEditorMode(activeTab === "animation" ? "animate" : "figure");
+      const mode = isAnim ? "animate" : "figure"
+      setInitialEditorMode(mode);
+      setEditorView(mode);
       setView("figure-editor");
     } catch(e) {}
   };
+
+  const handleBack = async () => {
+    if (activeProjectId) {
+      try {
+        const savedProj = await AppStorage.getItem("id_projects");
+        if (savedProj) {
+          let allProjs = JSON.parse(savedProj);
+          for (let i = 0; i < allProjs.length; i++) {
+            let p = allProjs[i];
+            if (p.id === activeProjectId) {
+              const isAnim = p.type === "figure-animation"
+              const wsKey = isAnim ? "anim_figure_workspace" : "figure_workspace"
+              const figData = await AppStorage.getItem(wsKey);
+              p.data = figData;
+              p.lastModified = Date.now();
+              allProjs[i] = p;
+            }
+          }
+          await AppStorage.setItem("id_projects", JSON.stringify(allProjs));
+          setProjects(allProjs);
+        }
+      } catch(e) {}
+    }
+    await AppStorage.setItem("active_project_id", "");
+    setActiveProjectId(null);
+    setView("menu");
+  }
+
+  if (view === "figure-editor") {
+    return (
+      <FigureEditorProvider initialMode={initialEditorMode}>
+        {editorView === "animate" ? (
+          <AnimationEditorPage onBack={handleBack} />
+        ) : (
+          <FigureEditorPage onBack={handleBack} />
+        )}
+      </FigureEditorProvider>
+    )
+  }
 
   const handleCreateGroup = () => {
     if (!newGroupName.trim()) return;
     const newGroup: ProjectGroup = {
       id: `group-${Date.now()}`,
       name: newGroupName,
-      type: activeTab
+      type: targetProjectType,
     }
     saveGroups([...groups, newGroup])
     setIsGroupDrawerOpen(false)
@@ -434,41 +480,9 @@ export function App() {
     e.preventDefault()
   }
 
-  const handleBack = async () => {
-    if (activeProjectId) {
-      try {
-        const figData = await AppStorage.getItem("figure_workspace");
-        const savedProj = await AppStorage.getItem("id_projects");
-        if (savedProj) {
-          let allProjs = JSON.parse(savedProj);
-          for (let i = 0; i < allProjs.length; i++) {
-            let p = allProjs[i];
-            if (p.id === activeProjectId) {
-              p.data = figData;
-              p.lastModified = Date.now();
-              allProjs[i] = p;
-            }
-          }
-          await AppStorage.setItem("id_projects", JSON.stringify(allProjs));
-          setProjects(allProjs);
-        }
-      } catch(e) {}
-    }
-    await AppStorage.setItem("active_project_id", "");
-    setActiveProjectId(null);
-    setView("menu");
-  }
-
-  if (view === "figure-editor") {
-    return (
-      <FigureEditorProvider initialMode={initialEditorMode}>
-        <FigureEditorPage onBack={handleBack} />
-      </FigureEditorProvider>
-    )
-  }
-
-  const currentTabProjects = projects.filter(p => p.type === "figure")
-  const currentTabGroups = groups.filter(g => g.type === "figure")
+  const targetProjectType = activeTab === "animation" ? "figure-animation" : "figure"
+  const currentTabProjects = projects.filter(p => p.type === targetProjectType)
+  const currentTabGroups = groups.filter(g => g.type === targetProjectType)
 
   const renderCard = (proj: Project) => (
     <div 
@@ -496,7 +510,7 @@ export function App() {
 
          {/* Badges inside card */}
          <div className="absolute top-2 left-2 flex flex-col gap-1 items-start">
-           {proj.type === "animation" && (
+            {(proj.type === "animation" || proj.type === "figure-animation") && (
              <span className="bg-blue-500/20 text-blue-300 text-[10px] px-2 py-0.5 rounded-full border border-blue-500/20">{proj.fps} FPS</span>
            )}
          </div>

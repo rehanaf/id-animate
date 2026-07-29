@@ -23,6 +23,15 @@ export class PointTrack {
     }
   }
 
+  removeKeyframe(time) {
+    const idx = this.keyframes.findIndex(kf => Math.abs(kf.time - time) < 0.001);
+    if (idx !== -1) {
+      this.keyframes.splice(idx, 1);
+      return true;
+    }
+    return false;
+  }
+
   getValue(time) {
     const keys = this.keyframes;
     if (keys.length === 0) return null;
@@ -89,6 +98,16 @@ export class FigureAnimation {
     const track = this.getOrCreateTrack(pointIndex);
     track.addKeyframe(time, x, y);
     if (this.duration < time) this.duration = time;
+  }
+
+  removePointPose(time, pointIndex) {
+    const track = this.getTrack(pointIndex);
+    if (!track) return false;
+    const removed = track.removeKeyframe(time);
+    if (track.keyframes.length === 0) {
+      this.tracks = this.tracks.filter(t => t !== track);
+    }
+    return removed;
   }
 
   applyToFigure(figure, time) {

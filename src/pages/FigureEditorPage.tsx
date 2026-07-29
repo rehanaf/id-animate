@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react"
-import { ArrowLeft, ListTree, MousePointer2, PenTool, Circle, Square, Image as ImageIcon, SlidersHorizontal, Plus, Minus, Maximize, Move, Undo2, Redo2, Play, Pause, ChevronLeft, ChevronRight, Video, RotateCw, Shrink, Crosshair, ArrowLeftRight, Spline } from "lucide-react"
+import { ArrowLeft, ListTree, MousePointer2, PenTool, Circle, Square, Image as ImageIcon, SlidersHorizontal, Plus, Minus, Maximize, Move, Undo2, Redo2, Play, Pause, ChevronLeft, ChevronRight, Video, RotateCw, RotateCcw, Shrink, Crosshair, ArrowLeftRight, Spline, Link, Unlink, Lock, Unlock } from "lucide-react"
 import { useFigureEditor } from "@/context/FigureEditorContext"
 import { FigureAnimation } from "@/core/nodes/FigureAnimation"
 import { FigureCanvasArea } from "@/components/nodes/FigureCanvasArea"
@@ -11,7 +11,8 @@ import { SideDrawer } from "@/components/layout/SideDrawer"
 
 export function FigureEditorPage({ onBack }: { onBack: () => void }) {
   const {
-    figure, activeTool, setActiveTool,
+    figure,
+    activeTool, setActiveTool,
     editorMode, setEditorMode,
     selectedSegmentId, setSelectedSegmentId,
     selectedPointIndex, setSelectedPointIndex,
@@ -21,6 +22,7 @@ export function FigureEditorPage({ onBack }: { onBack: () => void }) {
     currentTime, setCurrentTime,
     fps, duration, setDuration,
     currentAnimation, setCurrentAnimation,
+    pointModes, togglePointMode,
   } = useFigureEditor()
 
   const selectedSeg = selectedSegmentId && figure ? figure.getSegment(selectedSegmentId) : null
@@ -71,15 +73,48 @@ export function FigureEditorPage({ onBack }: { onBack: () => void }) {
     }
   }
 
-  const handleTimelineClick = (e: React.MouseEvent<HTMLDivElement>) => {
+  const timelineRef = React.useRef<HTMLDivElement>(null)
+  const [isScrubbing, setIsScrubbing] = React.useState(false)
+
+  React.useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+      if (e.code === 'Space') {
+        e.preventDefault()
+        setIsPlaying(!isPlaying)
+      } else if (e.code === 'ArrowLeft') {
+        e.preventDefault()
+        setFrame(Math.max(0, currentFrameIndex - 1))
+      } else if (e.code === 'ArrowRight') {
+        e.preventDefault()
+        setFrame(Math.min(totalFrames - 1, currentFrameIndex + 1))
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [isPlaying, currentFrameIndex, totalFrames])
+
+  const scrubToPointer = (e: React.PointerEvent) => {
     const rect = e.currentTarget.getBoundingClientRect()
     const x = e.clientX - rect.left
-    const pct = x / rect.width
-    const newTime = Math.max(0, Math.min(pct * duration, duration))
+    const pct = Math.max(0, Math.min(x / rect.width, 1))
+    const newTime = pct * duration
     setCurrentTime(newTime)
   }
 
-  const timelineRef = React.useRef<HTMLDivElement>(null)
+  const handleScrubDown = (e: React.PointerEvent) => {
+    setIsScrubbing(true)
+    e.currentTarget.setPointerCapture(e.pointerId)
+    scrubToPointer(e)
+  }
+
+  const handleScrubMove = (e: React.PointerEvent) => {
+    if (isScrubbing) scrubToPointer(e)
+  }
+
+  const handleScrubUp = () => {
+    setIsScrubbing(false)
+  }
 
   return (
     <div className="relative w-full h-screen bg-neutral-950 overflow-hidden font-poppins text-white select-none">
@@ -132,6 +167,24 @@ export function FigureEditorPage({ onBack }: { onBack: () => void }) {
             className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${activeTool === 'stretch' ? 'bg-orange-500 text-white shadow-[0_0_15px_rgba(249,115,22,0.3)]' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
             title="Stretch (drag point to stretch connected segments)"
           ><Shrink className="w-4 h-4" /></button>
+          <button
+            onClick={() => setActiveTool('rotate-all')}
+            className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${activeTool === 'rotate-all' ? 'bg-yellow-500 text-white shadow-[0_0_15px_rgba(234,179,8,0.3)]' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+            title="Rotate All: drag to rotate entire figure around center"
+          ><RotateCcw className="w-4 h-4" /></button>
+        </div>
+
+        <div className="flex bg-[#15151a]/80 backdrop-blur-xl border border-white/10 p-1 rounded-full shadow-2xl gap-0.5">
+          <button
+            onClick={() => setActiveTool('join')}
+            className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${activeTool === 'join' ? 'bg-teal-500 text-white shadow-[0_0_15px_rgba(20,184,166,0.3)]' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+            title="Join: click two points to connect them"
+          ><Link className="w-4 h-4" /></button>
+          <button
+            onClick={() => setActiveTool('unjoin')}
+            className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${activeTool === 'unjoin' ? 'bg-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.3)]' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+            title="Unjoin: click a segment to delete it"
+          ><Unlink className="w-4 h-4" /></button>
         </div>
 
         {/* Add Segment Tools (disabled in animate mode) */}
@@ -224,7 +277,10 @@ export function FigureEditorPage({ onBack }: { onBack: () => void }) {
           <div
             ref={timelineRef}
             className="flex-1 h-8 bg-black/40 rounded-lg relative cursor-pointer overflow-hidden"
-            onClick={handleTimelineClick}
+            onPointerDown={handleScrubDown}
+            onPointerMove={handleScrubMove}
+            onPointerUp={handleScrubUp}
+            onPointerCancel={handleScrubUp}
           >
             {/* Keyframe markers */}
             {currentAnimation?.tracks.map(track =>
@@ -270,14 +326,27 @@ export function FigureEditorPage({ onBack }: { onBack: () => void }) {
           title="Segments List"
           icon={ListTree}
         />
-        <button onClick={handleFlip} disabled={!selectedSeg} className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${selectedSeg ? 'bg-white/10 text-white hover:bg-white/20' : 'text-gray-700'}`} title="Flip X (mirror point1 around point2)"><ArrowLeftRight className="w-4 h-4" /></button>
+        <button onClick={handleFlip} disabled={!selectedSeg} className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${selectedSeg ? 'text-gray-300 hover:bg-white/10' : 'text-gray-700'}`} title="Flip X"><ArrowLeftRight className="w-4 h-4" /></button>
         <div className="relative w-8 h-8 flex items-center justify-center">
           <input type="color" value={selectedSeg?.color || '#d1d5db'} onChange={(e) => { if (selectedSeg) { selectedSeg.color = e.target.value; forceUpdate(); pushHistory() }}} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10" disabled={!selectedSeg} />
           <button onClick={(e) => { const input = e.currentTarget.parentElement?.querySelector('input[type=color]') as HTMLInputElement; if (selectedSeg) input?.click() }} className={`w-6 h-6 rounded-full transition-all ring-1 ${selectedSeg ? 'ring-white/40 hover:ring-white/80 cursor-pointer' : 'ring-white/10 cursor-not-allowed'}`} style={{ background: selectedSeg?.color || '#333' }} />
         </div>
-        <button onClick={cycleLineCap} disabled={!selectedSeg} className={`w-8 h-8 flex items-center justify-center rounded-full transition-all text-[10px] font-bold ${selectedSeg ? 'bg-white/10 text-white hover:bg-white/20' : 'text-gray-700'}`} title={`Line cap: ${selectedSeg?.lineCap || 'round'}`}>
+        <button onClick={cycleLineCap} disabled={!selectedSeg} className={`w-8 h-8 flex items-center justify-center rounded-full transition-all text-[10px] font-bold ${selectedSeg ? 'text-gray-300 hover:bg-white/10' : 'text-gray-700'}`} title={`Line cap: ${selectedSeg?.lineCap || 'round'}`}>
           {selectedSeg?.lineCap === 'round' ? 'R' : selectedSeg?.lineCap === 'square' ? 'S' : selectedSeg ? 'B' : '-'}
         </button>
+        {selectedPointIndex !== null && figure?.points[selectedPointIndex] && (
+          <button
+            onClick={() => togglePointMode(selectedPointIndex)}
+            className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${
+              pointModes[selectedPointIndex] === 'static'
+                ? 'bg-blue-600 text-white'
+                : 'text-gray-300 hover:bg-white/10'
+            }`}
+            title={`Point #${selectedPointIndex}: ${pointModes[selectedPointIndex] === 'static' ? 'Static' : 'Dynamic'}`}
+          >
+            {pointModes[selectedPointIndex] === 'static' ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
+          </button>
+        )}
       </FloatingSidebar>
 
       <SideDrawer side="left" activeTab={activeLeftTab} onClose={() => setActiveLeftTab(null)}>
